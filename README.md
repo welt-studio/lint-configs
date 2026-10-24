@@ -96,8 +96,9 @@ known-first-party = ["app"]
 ```
 
 **O padrão é o mesmo em todos os projetos.** O `ruff.toml` do pacote só declara fatos do projeto:
-`known-first-party` e, em `extend-exclude`, código gerado ou de terceiros. Regra, limite e exceção
-vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
+`known-first-party` e, em `extend-exclude` (que soma com o do base), código gerado fora das pastas
+que o base já exclui. Regra, limite e exceção vêm do base; precisou de regra nova, ela entra aqui,
+para todos, numa tag nova.
 
 | Bloco | O que fixa |
 |---|---|
@@ -105,7 +106,7 @@ vêm do base; precisou de regra nova, ela entra aqui, para todos, numa tag nova.
 | `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`), `# type: ignore` sem o código da regra (`PGH003`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
 | Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
 | Runtime | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime |
-| Exceções padrão | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas ficam fora do lint e do format (`extend-exclude` + `force-exclude`) |
+| Exceções padrão | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas e código de terceiros em `vendor/` ficam fora do lint e do format (`extend-exclude` + `force-exclude`), como no Prettier e no jscpd |
 | `[format]` | aspas duplas, espaço, `lf` |
 
 Os hooks `ruff` e `ruff-format` do projeto são locais (`uv run --project <pacote> ruff ...`), para

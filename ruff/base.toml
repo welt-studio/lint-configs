@@ -2,9 +2,8 @@
 #
 # O projeto não usa este arquivo daqui: o hook `ruff-base` (este repo, `.pre-commit-hooks.yaml`)
 # copia-o para `ruff-base.toml` na raiz do projeto, e o `ruff.toml` de cada pacote faz `extend`
-# dessa cópia. O projeto só declara fatos dele (`known-first-party`, código gerado ou de terceiros
-# em `extend-exclude`); regra, limite e exceção vêm daqui. Precisou de regra nova? Entra aqui, para
-# todos, numa tag nova.
+# dessa cópia. O projeto só declara fatos dele (`known-first-party`); regra, limite e exceção vêm
+# daqui. Precisou de regra nova? Entra aqui, para todos, numa tag nova.
 
 target-version = "py314"
 line-length = 100
@@ -12,9 +11,11 @@ line-length = 100
 # que conhece todas as regras do `select`. Regra nova que exija um Ruff mais novo sobe o piso. Sem
 # `preview`: no Ruff, uma versão patch pode mudar o que está em preview.
 required-version = ">=0.17.1"
-# Migrations geradas pelo Alembic/Django não são escritas à mão: ficam fora do lint e do format.
-# `force-exclude` faz valer também para arquivo passado pelo nome (é assim que o hook e a CI rodam).
-extend-exclude = ["**/alembic/versions/**", "**/migrations/**"]
+# Fora do lint e do format, como no Prettier e no jscpd do padrão: migrations geradas pelo
+# Alembic/Django, que não são escritas à mão, e código de terceiros (transcrito ou copiado) em
+# `vendor/`, que segue o original. `force-exclude` faz valer também para arquivo passado pelo nome
+# (é assim que o hook e a CI rodam).
+extend-exclude = ["**/alembic/versions/**", "**/migrations/**", "**/vendor/**"]
 force-exclude = true
 
 [lint]
