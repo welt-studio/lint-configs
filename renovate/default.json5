@@ -87,6 +87,12 @@
       versioning: 'regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
+      description: 'E o hook `jscpd-base` só as `jscpd-v*`.',
+      matchPackageNames: ['welt-studio/lint-configs'],
+      matchCurrentValue: '/^jscpd-v/',
+      versioning: 'regex:^jscpd-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
       // Exceção: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos runners, e a migração
       // para Node 24 (rustsec/audit-check#48) ainda não tem tag. Fica no commit do `main` até sair
       // uma release; aí esta regra sai.

@@ -1,0 +1,33 @@
+{
+  "$comment": [
+    "GERADO pelo hook `jscpd-base` de github.com/welt-studio/lint-configs (jscpd/semantic.json).",
+    "NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no",
+    ".pre-commit-config.yaml; regra nova entra no lint-configs, para todos os projetos.",
+    "Relatório de duplicação semântica (código que faz a mesma coisa escrito diferente), fora dos",
+    "testes. Não reprova: é para ler. O projeto passa a pasta do relatório com `-o`."
+  ],
+  "format": ["python", "typescript", "tsx", "javascript", "jsx", "rust"],
+  "ignore": [
+    "**/migrations/**",
+    "**/alembic/versions/**",
+    "**/*.gen.ts",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.mjs",
+    "**/*.min.cjs",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/e2e/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/test_*.py",
+    "**/conftest.py",
+    "**/tests.rs"
+  ],
+  "semantic": { "enabled": true, "scope": "same" },
+  "kind": ["semantic"],
+  "reporters": ["json"],
+  "noColors": true,
+  "noTips": true
+}

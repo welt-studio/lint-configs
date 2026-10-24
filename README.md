@@ -264,6 +264,32 @@ O hook do Prettier é o mesmo em todo projeto: `pnpm exec prettier --write --ign
 arquivos do commit; na CI, o TS/JS fora do formato reprova pelo `prettier/prettier` do ESLint. O
 projeto inteiro se formata pelo mesmo hook, nunca por `prettier .` direto:
 `uvx pre-commit@4.7.0 run prettier --all-files`. O hook só recebe arquivo versionado e respeita o
-`exclude` dele; o
-`prettier .` lê só o `.gitignore` da pasta de onde roda (não os de subpastas) e entraria em
-`dist/`, artefatos e pastas ignoradas mais abaixo.
+`exclude` dele; o `prettier .` lê só o `.gitignore` da pasta de onde roda (não os de subpastas) e
+entraria em `dist/`, artefatos e pastas ignoradas mais abaixo.
+
+## jscpd: `jscpd/` pelo hook `jscpd-base`
+
+O jscpd não herda config de pacote, então o padrão chega como cópia, pelo mesmo `sync_base.py`: o
+hook `jscpd-base` mantém na raiz do projeto o `.jscpd.json` (a trava) e o `.jscpd-semantic.json` (o
+relatório semântico). O JSON do jscpd não aceita comentário; o aviso de "gerado" fica na chave
+`$comment` de cada arquivo.
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: jscpd-v1.0.0
+  hooks:
+    - id: jscpd-base
+```
+
+| Arquivo | O que fixa |
+|---|---|
+| `.jscpd.json` (trava) | Python, TS/TSX, JS/JSX e Rust, no repo inteiro; qualquer clone reprova (`exitCode` 1). Fora: o que o git ignora (o jscpd lê o `.gitignore`), migrations, `*.gen.ts`, `vendor/` e `*.min.*`. Linhas de import (TS/JS e Python) não contam: dois arquivos com os mesmos imports não duplicam lógica |
+| `.jscpd-semantic.json` (relatório) | código que faz a mesma coisa escrito diferente, fora dos testes; não reprova. O projeto passa a pasta do relatório com `-o` |
+
+O hook da trava é o mesmo em todo projeto, sobre o repo inteiro (`pass_filenames: false`: a cópia
+que importa é a de uma função que já existe em outro arquivo):
+`pnpm exec jscpd .` na raiz, ou `bash -c 'cd frontend && pnpm exec jscpd -c ../.jscpd.json ..'` onde
+o Node fica em `frontend/`. A versão do jscpd é a do lockfile do projeto. Os relatórios de código
+morto e complexidade (`.jscpd-health.json`) são do projeto, porque os pontos de entrada são fatos
+dele.

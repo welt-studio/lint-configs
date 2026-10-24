@@ -24,3 +24,12 @@
   language: script
   pass_filenames: false
   always_run: true
+
+# Mantém `.jscpd.json` (a trava) e `.jscpd-semantic.json` (o relatório semântico) na raiz do projeto
+# iguais ao `jscpd/` do `rev` declarado.
+- id: jscpd-base
+  name: jscpd-base (padrão jscpd da Welt Studio)
+  entry: sync_base.py jscpd
+  language: script
+  pass_filenames: false
+  always_run: true
