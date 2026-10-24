@@ -188,7 +188,7 @@ do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: pyright-v1.0.0
+  rev: pyright-v1.1.0
   hooks:
     - id: pyright-base
 ```
@@ -291,7 +291,7 @@ edição da cópia.
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: jscpd-v1.0.0
+  rev: jscpd-v1.0.1
   hooks:
     - id: jscpd-base
 ```
