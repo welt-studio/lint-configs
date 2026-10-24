@@ -1,0 +1,17 @@
+# Padrão de exclusão do Prettier da Welt Studio. O que o git ignora já fica fora sozinho (o Prettier
+# lê o `.gitignore`); aqui só o que é versionado e não é nosso para formatar.
+
+# Lockfiles: gerados pelo gerenciador de pacotes, no formato dele. O Prettier reformataria a cada
+# commit e o próximo `install` desfaria, em toda linha do arquivo.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI): o gerador reescreve
+# no estilo dele a cada rodada, e formatar só cria diff que a rodada seguinte desfaz.
+**/*.gen.ts
+
+# Código de terceiros, que entra no repo como está.
+**/vendor/**
+**/*.min.js
+**/*.min.css

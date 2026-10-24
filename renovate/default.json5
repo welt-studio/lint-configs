@@ -81,6 +81,12 @@
       versioning: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
+      description: 'E o pacote do Prettier (e o hook `prettier-base`) só as `prettier-v*`.',
+      matchPackageNames: ['welt-studio/lint-configs'],
+      matchCurrentValue: '/^prettier-v/',
+      versioning: 'regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
       // Exceção: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos runners, e a migração
       // para Node 24 (rustsec/audit-check#48) ainda não tem tag. Fica no commit do `main` até sair
       // uma release; aí esta regra sai.
@@ -93,8 +99,8 @@
       // comando, que o runner (`welt-studio/renovate`, `allowedCommands`) permite e mais nenhum.
       // `--lockfile-only` só recalcula o lockfile; `--ignore-scripts` não deixa pacote rodar código.
       // PR próprio: se o lockfile falhar, não derruba o PR agrupado.
-      description: 'Os pacotes ESLint e tsconfig deste repo vêm cada um em PR próprio, com o lockfile, para revisão.',
-      matchDepNames: ['@welt-studio/eslint-config', '@welt-studio/tsconfig'],
+      description: 'Os pacotes ESLint, tsconfig e Prettier deste repo vêm cada um em PR próprio, com o lockfile, para revisão.',
+      matchDepNames: ['@welt-studio/eslint-config', '@welt-studio/tsconfig', '@welt-studio/prettier-config'],
       groupName: '{{depName}}',
       automerge: false,
       postUpgradeTasks: {
@@ -176,6 +182,16 @@
       packageNameTemplate: 'welt-studio/lint-configs',
       datasourceTemplate: 'github-tags',
       versioningTemplate: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+    },
+    {
+      description: 'O pacote do Prettier deste repo, pela tag `prettier-v*` (mesmo caso do ESLint).',
+      customType: 'regex',
+      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
+      matchStrings: ['github:welt-studio/lint-configs#(?<currentValue>prettier-v\\d+\\.\\d+\\.\\d+)&path:/prettier'],
+      depNameTemplate: '@welt-studio/prettier-config',
+      packageNameTemplate: 'welt-studio/lint-configs',
+      datasourceTemplate: 'github-tags',
+      versioningTemplate: 'regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
     },
     {
       description: 'Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.',

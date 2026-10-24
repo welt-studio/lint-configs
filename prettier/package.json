@@ -1,0 +1,22 @@
+{
+  "name": "@welt-studio/prettier-config",
+  "version": "1.0.0",
+  "description": "Configuração Prettier padrão da Welt Studio",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/welt-studio/lint-configs.git",
+    "directory": "prettier"
+  },
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": ["index.mjs"],
+  "dependencies": {
+    "prettier-plugin-glsl": "0.3.1"
+  },
+  "peerDependencies": {
+    "prettier": "^3.0.0"
+  }
+}

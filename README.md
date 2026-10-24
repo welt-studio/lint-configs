@@ -52,7 +52,7 @@ recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Nod
 | O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
 | Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
 | Testes (`*.test.*`, `*.spec.*`, `__tests__/`, `test/`, `e2e/`) | sem limites de tamanho; o resto do padrão vale |
-| Prettier (`eslint-plugin-prettier`) | formatação como regra, por último; `curly` religado depois dele |
+| Prettier (`eslint-plugin-prettier`) | formatação como regra, por último, com a config do projeto (o `@welt-studio/prettier-config`); `curly` religado depois dele |
 
 **Não há aviso:** toda regra é erro ou está desligada (os projetos rodam com `--max-warnings=0`, e
 um aviso já reprovaria).
@@ -156,8 +156,8 @@ Os gerenciadores do Renovate leem sozinhos `package.json` (inclusive `packageMan
 docker-compose, workflows e o `.pre-commit-config.yaml`. O preset acrescenta, por regex, o que eles
 não leem: o `[tool.uv] required-version`, as imagens `ghcr.io/astral-sh/uv` e `ghcr.io/pnpm/pnpm`
 (o GHCR não informa data, então andam pela versão do pacote no PyPI e no npm), o
-`uvx <ferramenta>@<versão>` dos workflows e o `@welt-studio/eslint-config` pela tag `eslint-v*`. Esse
-último (e o `@welt-studio/tsconfig`) chega com o lockfile: o preset roda
+`uvx <ferramenta>@<versão>` dos workflows e os pacotes deste repo pela tag de cada um
+(`eslint-v*`, `tsconfig-v*`, `prettier-v*`). Esses pacotes chegam com o lockfile: o preset roda
 `pnpm install --lockfile-only --ignore-scripts` no PR, o único comando que o runner permite
 (`allowedCommands`), que recalcula o lockfile sem rodar código de pacote.
 
@@ -201,7 +201,8 @@ do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
 
 Nenhuma regra desligada: o projeto não declara `report*`. A versão do Pyright é o pin do
 `pyproject.toml` de cada projeto, que o Renovate sobe. O hook do projeto checa os arquivos do commit
-e a CI os arquivos alterados até a fila do strict zerar; depois, o projeto inteiro.
+(a fatia que se commita); a CI checa o projeto inteiro e fica vermelha até a fila zerar, porque um
+contrato quebrado aparece em quem chama a função, fora do commit.
 
 ## TypeScript: `@welt-studio/tsconfig`
 
@@ -225,5 +226,39 @@ A base liga, além do `strict`: `noUncheckedIndexedAccess` (acesso por índice p
 `isolatedModules` e `erasableSyntaxOnly` (sem `enum` nem parameter property). Variável e parâmetro
 sem uso ficam com o ESLint. Módulo `ESNext` com resolução `bundler`, `skipLibCheck`.
 
-O `tsc` checa o projeto inteiro (não há "só os arquivos do commit"), então o projeto adota a base
-depois de zerar os erros que ela acusa: é uma fatia de cada projeto, no índice de adequação dele.
+O `tsc` checa o projeto inteiro (não há "só os arquivos do commit"): com a base adotada, a CI fica
+vermelha até o projeto zerar os erros que ela acusa, que estão no índice de adequação dele.
+
+## Prettier: `@welt-studio/prettier-config` e o hook `prettier-base`
+
+Pacote em `prettier/`, instalado por tag do git como os outros, e declarado no `package.json` do
+projeto, que não tem `.prettierrc`:
+
+```json
+"prettier": "@welt-studio/prettier-config",
+"devDependencies": {
+  "@welt-studio/prettier-config": "github:welt-studio/lint-configs#prettier-v1.0.0&path:/prettier"
+}
+```
+
+O estilo é o padrão do Prettier (aspas duplas, vírgula no fim em tudo, parênteses na arrow
+function, `lf`), com `printWidth` 100. O plugin de GLSL vem no pacote: formata shader
+(`.glsl`, `.vert`, `.frag`) e não faz nada em projeto sem shader. O `prettier` (3) é
+`peerDependency`, na versão do projeto.
+
+O Prettier lê o `.gitignore` sozinho; o `.prettierignore` fica só com o que é versionado e não se
+formata (lockfiles, `*.gen.ts`, `vendor/`, `*.min.*`). Ele não herda arquivo de pacote, então é
+cópia do `prettier/ignore`, mantida pelo hook `prettier-base` (o mesmo `sync_base.py` do Ruff e do
+Pyright). Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: prettier-v1.0.0
+  hooks:
+    - id: prettier-base
+      args: [frontend] # só onde o Prettier roda de `frontend/`
+```
+
+O hook do Prettier é o mesmo em todo projeto: `pnpm exec prettier --write --ignore-unknown`, nos
+arquivos do commit.
