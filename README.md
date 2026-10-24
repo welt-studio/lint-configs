@@ -237,7 +237,7 @@ projeto, que não tem `.prettierrc`:
 ```json
 "prettier": "@welt-studio/prettier-config",
 "devDependencies": {
-  "@welt-studio/prettier-config": "github:welt-studio/lint-configs#prettier-v1.0.0&path:/prettier"
+  "@welt-studio/prettier-config": "github:welt-studio/lint-configs#prettier-v1.1.0&path:/prettier"
 }
 ```
 
@@ -246,19 +246,23 @@ function, `lf`), com `printWidth` 100. O plugin de GLSL vem no pacote: formata s
 (`.glsl`, `.vert`, `.frag`) e não faz nada em projeto sem shader. O `prettier` (3) é
 `peerDependency`, na versão do projeto.
 
-O Prettier lê o `.gitignore` sozinho; o `.prettierignore` fica só com o que é versionado e não se
-formata (lockfiles, `*.gen.ts`, `vendor/`, `*.min.*`). Ele não herda arquivo de pacote, então é
-cópia do `prettier/ignore`, mantida pelo hook `prettier-base` (o mesmo `sync_base.py` do Ruff e do
-Pyright). Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
+O `.prettierignore` fica só com o que é versionado e não se formata (lockfiles, `*.gen.ts`,
+`vendor/`, `*.min.*`, templates Jinja/Django). Ele não herda arquivo de pacote, então é cópia do
+`prettier/ignore`, mantida pelo hook `prettier-base` (o mesmo `sync_base.py` do Ruff e do Pyright).
+Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
 
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: prettier-v1.0.0
+  rev: prettier-v1.1.0
   hooks:
     - id: prettier-base
       args: [frontend] # só onde o Prettier roda de `frontend/`
 ```
 
 O hook do Prettier é o mesmo em todo projeto: `pnpm exec prettier --write --ignore-unknown`, nos
-arquivos do commit.
+arquivos do commit. O projeto inteiro se formata e se confere pelo mesmo hook, nunca por
+`prettier .` direto: `uvx pre-commit@4.7.0 run prettier --all-files` (na CI, com
+`--show-diff-on-failure`). O hook só recebe arquivo versionado e respeita o `exclude` dele; o
+`prettier .` lê só o `.gitignore` da pasta de onde roda (não os de subpastas) e entraria em
+`dist/`, artefatos e pastas ignoradas mais abaixo.

@@ -5,8 +5,8 @@
 // parênteses na arrow function, `lf`); só a largura muda, para a que os projetos já usavam.
 // Precisou mudar, muda aqui, para todos, numa tag nova.
 //
-// O que não se formata fica fora pelo `.gitignore` (o Prettier o lê sozinho) e pelo
-// `.prettierignore`, que é a cópia do `prettier/ignore` mantida pelo hook `prettier-base`.
+// O que não se formata fica fora pelo `.prettierignore`, a cópia do `prettier/ignore` mantida pelo
+// hook `prettier-base`; o projeto inteiro se formata pelo hook do Prettier (só arquivo versionado).
 
 import * as glsl from "prettier-plugin-glsl";
 

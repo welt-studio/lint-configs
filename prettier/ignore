@@ -1,5 +1,6 @@
-# Padrão de exclusão do Prettier da Welt Studio. O que o git ignora já fica fora sozinho (o Prettier
-# lê o `.gitignore`); aqui só o que é versionado e não é nosso para formatar.
+# Padrão de exclusão do Prettier da Welt Studio: só o que é versionado e não é nosso para formatar.
+# O que o git ignora fica fora porque o projeto inteiro se formata pelo hook do pre-commit, que só
+# recebe arquivo versionado (`pre-commit run prettier --all-files`), nunca por `prettier .`.
 
 # Lockfiles: gerados pelo gerenciador de pacotes, no formato dele. O Prettier reformataria a cada
 # commit e o próximo `install` desfaria, em toda linha do arquivo.
@@ -14,4 +15,10 @@ yarn.lock
 # Código de terceiros, que entra no repo como está.
 **/vendor/**
 **/*.min.js
+**/*.min.mjs
+**/*.min.cjs
 **/*.min.css
+
+# Templates de servidor (Jinja, Django): o HTML tem tags `{% %}` e `{{ }}` que o Prettier não
+# entende, e ele reindenta e junta as tags, mudando o que o template gera.
+**/templates/**/*.html
