@@ -18,8 +18,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 # Padrão: as cópias, cada uma (arquivo do padrão neste repo, nome da cópia no projeto, marca de
-# comentário). Sem marca (`None`), o formato não aceita comentário (o JSON do jscpd) e o arquivo do
-# padrão já traz o aviso de "gerado" dentro dele, numa chave `$comment`.
+# comentário). Sem marca (`None`), o formato não aceita comentário nem chave a mais (o JSON do
+# jscpd avisa campo desconhecido a cada execução): a cópia sai sem o aviso de "gerado", que fica no
+# comentário do hook no `.pre-commit-config.yaml` do projeto.
 BASES: dict[str, tuple[tuple[str, str, str | None], ...]] = {
     "ruff": (("ruff/base.toml", "ruff-base.toml", "#"),),
     "pyright": (("pyright/base.json", "pyright-base.json", "//"),),

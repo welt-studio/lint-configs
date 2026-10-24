@@ -271,8 +271,10 @@ entraria em `dist/`, artefatos e pastas ignoradas mais abaixo.
 
 O jscpd não herda config de pacote, então o padrão chega como cópia, pelo mesmo `sync_base.py`: o
 hook `jscpd-base` mantém na raiz do projeto o `.jscpd.json` (a trava) e o `.jscpd-semantic.json` (o
-relatório semântico). O JSON do jscpd não aceita comentário; o aviso de "gerado" fica na chave
-`$comment` de cada arquivo.
+relatório semântico). O JSON do jscpd não aceita comentário nem chave a mais (avisa campo
+desconhecido a cada execução), então a cópia sai sem o aviso de "gerado, não edite": ele fica no
+comentário do bloco do hook no `.pre-commit-config.yaml` do projeto, e o hook desfaz qualquer
+edição da cópia.
 
 ```yaml
 # .pre-commit-config.yaml

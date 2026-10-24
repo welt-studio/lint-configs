@@ -1,12 +1,4 @@
 {
-  "$comment": [
-    "GERADO pelo hook `jscpd-base` de github.com/welt-studio/lint-configs (jscpd/base.json).",
-    "NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no",
-    ".pre-commit-config.yaml; regra nova entra no lint-configs, para todos os projetos.",
-    "Trava de duplicação: o repo inteiro, qualquer clone reprova. O que o git ignora fica fora",
-    "sozinho (o jscpd lê o .gitignore); aqui só o versionado que não é nosso. Linhas de import",
-    "(TS/JS e Python) não contam: dois arquivos com os mesmos imports não duplicam lógica."
-  ],
   "format": ["python", "typescript", "tsx", "javascript", "jsx", "rust"],
   "ignore": [
     "**/migrations/**",
