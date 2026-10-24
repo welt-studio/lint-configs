@@ -78,7 +78,7 @@ cópia, mantida por um hook de pre-commit deste repo:
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.3.0
+  rev: ruff-v1.4.0
   hooks:
     - id: ruff-base
 ```
@@ -93,6 +93,16 @@ extend = "../../ruff-base.toml" # caminho até a raiz do projeto
 
 [lint.isort]
 known-first-party = ["app"]
+```
+
+**O hook do Ruff passa `--config <pacote>/ruff.toml`.** Rodando da raiz com o arquivo pelo nome
+(como o pre-commit roda), o Ruff decide as exclusões (`extend-exclude` + `force-exclude`) com a
+config padrão dele, e não com a do pacote: migrations e `vendor/` seriam conferidos e corrigidos no
+commit. Com `--config`, a exclusão vale. Na CI, rodar de dentro do pacote também resolve.
+
+```yaml
+- id: ruff
+  entry: uv run --project backend ruff check --fix --config backend/ruff.toml
 ```
 
 **O padrão é o mesmo em todos os projetos.** O `ruff.toml` do pacote só declara fatos do projeto:
