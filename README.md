@@ -261,8 +261,9 @@ Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
 ```
 
 O hook do Prettier é o mesmo em todo projeto: `pnpm exec prettier --write --ignore-unknown`, nos
-arquivos do commit. O projeto inteiro se formata e se confere pelo mesmo hook, nunca por
-`prettier .` direto: `uvx pre-commit@4.7.0 run prettier --all-files` (na CI, com
-`--show-diff-on-failure`). O hook só recebe arquivo versionado e respeita o `exclude` dele; o
+arquivos do commit; na CI, o TS/JS fora do formato reprova pelo `prettier/prettier` do ESLint. O
+projeto inteiro se formata pelo mesmo hook, nunca por `prettier .` direto:
+`uvx pre-commit@4.7.0 run prettier --all-files`. O hook só recebe arquivo versionado e respeita o
+`exclude` dele; o
 `prettier .` lê só o `.gitignore` da pasta de onde roda (não os de subpastas) e entraria em
 `dist/`, artefatos e pastas ignoradas mais abaixo.
