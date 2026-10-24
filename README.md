@@ -199,6 +199,7 @@ do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
 |---|---|
 | `typeCheckingMode` | `standard` em tudo; o código da aplicação sobe para strict pela lista `strict` do projeto (o strict cobra o contrato de cada função; nos testes, o ruído das fixtures sem anotação não paga a fila) |
 | `reportUnnecessaryTypeIgnoreComment` | `# type: ignore` que não ignora nada reprova; o código da regra é cobrado pelo `PGH003` do Ruff |
+| `ignore` | código de terceiros em `vendor/` não é acusado (como no Ruff, no Prettier e no jscpd); quem o usa continua conferido contra os tipos dele. O projeto não declara `ignore`, que substituiria este |
 
 Nenhuma regra desligada: o projeto não declara `report*`. A versão do Pyright é o pin do
 `pyproject.toml` de cada projeto, que o Renovate sobe. O hook do projeto checa os arquivos do commit

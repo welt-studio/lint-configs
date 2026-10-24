@@ -12,5 +12,9 @@
   "typeCheckingMode": "standard",
   // `# type: ignore` que não ignora nada reprova (como o RUF100 do Ruff). O código da regra entre
   // colchetes é cobrado pelo PGH003 do padrão Ruff.
-  "reportUnnecessaryTypeIgnoreComment": "error"
+  "reportUnnecessaryTypeIgnoreComment": "error",
+  // Código de terceiros (transcrito ou copiado) em `vendor/` segue o original: o Pyright não acusa
+  // nada dentro dele, como o Ruff, o Prettier e o jscpd do padrão. Quem o usa continua conferido
+  // contra os tipos dele. O projeto não declara `ignore`: declarar substituiria este.
+  "ignore": ["**/vendor/**"]
 }
