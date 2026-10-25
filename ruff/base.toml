@@ -67,6 +67,14 @@ select = [
     "PGH003",  # `# type: ignore` sem o código da regra (o Pyright cobra o que não ignora nada)
     "PGH004",  # noqa sem código
     "PLC0415", # import dentro de função
+    "T10",     # `breakpoint()`/`pdb` esquecido
+    "NPY",     # API depreciada do NumPy (só dispara em código NumPy)
+    "PT",      # estilo do pytest (`raises` com `match`, assert simples, sem assert do unittest)
+    "RSE",     # `raise X()` com parênteses à toa
+    "FLY",     # `"".join([...])` estático que devia ser f-string
+    "TID252",  # import relativo que sobe pasta: import absoluto
+    "INP",     # pasta de código sem `__init__.py` (confunde a coleta do pytest e o Pyright)
+    "EM",      # mensagem da exceção numa variável antes do `raise` (o traceback não a repete)
 ]
 ignore = [
     "S105", # hardcoded-password-string: falso positivo com o token type "bearer" do OAuth2
@@ -111,6 +119,8 @@ runtime-evaluated-decorators = [
 
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python >=3.14 já adia a avaliação das anotações (PEP 649)."
+# Relógio em teste tem uma lib só, a do padrão de testes (`pytest-base`).
+"freezegun".msg = "Use time-machine (padrão de testes da Welt Studio)."
 
 [lint.pep8-naming]
 # `@declared_attr` recebe a classe (`cls`): é como o SQLAlchemy declara coluna/relacionamento em

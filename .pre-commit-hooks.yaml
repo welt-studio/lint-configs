@@ -33,3 +33,12 @@
   language: script
   pass_filenames: false
   always_run: true
+
+# Confere no `pyproject.toml` do pacote Python as opções do padrão de testes (o pytest não herda
+# config, então não há cópia): na raiz, ou na pasta do pacote passada em `args` (ex.: `args: [backend]`).
+- id: pytest-base
+  name: pytest-base (padrão de testes da Welt Studio)
+  entry: check_pytest.py
+  language: script
+  pass_filenames: false
+  always_run: true

@@ -8,7 +8,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.1.0&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.2.0&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -49,9 +49,11 @@ recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Nod
 | `eslint-plugin-i18next` (`i18n: true`) | texto visível escrito direto no JSX (entre tags ou em qualquer atributo) ou num toast (`toast("…")`, `toast.error("…")`, `description`, `toast.promise`). Ficam de fora só os atributos e chaves de objeto que são código — rota (`href`, `to`), `data-*`, `testId`, ícone (`name`, `icon`), classe (`className`, `classNames`, `cn(...)`), cor, `aria-hidden`, SVG, `type` —, locale e formato (`toLocaleString`, `Intl.*`), `toast.dismiss(id)` e os testes. Prop nova é cobrada até entrar nessa lista: erro a mais aparece, erro a menos passa calado. Vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
 | `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
 | Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
+| Regras com tipo além do `strict` | `switch` sobre união que esquece um caso (`switch-exhaustiveness-check`), sombra de variável, retorno inconsistente, `readonly` onde cabe, método como propriedade (`method-signature-style`), `sort()` sem comparador, import/export de tipo marcado como tipo |
+| Imports (`eslint-plugin-import-x`) | ciclo de import (resolvendo os aliases do `tsconfig`), import duplicado, import de si mesmo, caminho com segmento inútil e a ordem (biblioteca padrão, pacotes, código do projeto, um grupo por bloco, como o `I` do Ruff) |
 | O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
 | Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
-| Testes (`*.test.*`, `*.spec.*`, `__tests__/`, `test/`, `e2e/`) | sem limites de tamanho; o resto do padrão vale |
+| Testes (`*.test.ts(x)` ao lado do código, `e2e/`) | sem limites de tamanho; o resto do padrão vale. Nos unitários, `@vitest/eslint-plugin` (`it.only` esquecido, teste sem `expect`, `expect` condicional), `eslint-plugin-testing-library` (query certa, sem `container`) e `eslint-plugin-jest-dom` (matcher no lugar de comparar booleano) |
 | Prettier (`eslint-plugin-prettier`) | formatação como regra, por último, com a config do projeto (o `@welt-studio/prettier-config`); `curly` religado depois dele |
 
 **Não há aviso:** toda regra é erro ou está desligada (os projetos rodam com `--max-warnings=0`, e
@@ -78,7 +80,7 @@ cópia, mantida por um hook de pre-commit deste repo:
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.4.0
+  rev: ruff-v1.5.0
   hooks:
     - id: ruff-base
 ```
@@ -113,7 +115,7 @@ para todos, numa tag nova.
 | Bloco | O que fixa |
 |---|---|
 | `required-version` | a versão mínima do Ruff, a primeira que conhece todas as regras do padrão. A exata é a do `uv.lock` do projeto. Sem `preview`, porque uma versão patch do Ruff pode mudar o que está em preview |
-| `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`), `# type: ignore` sem o código da regra (`PGH003`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649) |
+| `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`), `# type: ignore` sem o código da regra (`PGH003`). Desde a `ruff-v1.5.0`, também: estilo do pytest (`PT`), `breakpoint()` esquecido (`T10`), NumPy (`NPY`), `raise` (`RSE`), f-string (`FLY`), import relativo que sobe pasta (`TID252`), pasta sem `__init__.py` (`INP`) e mensagem de exceção numa variável (`EM`). Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649); `freezegun` também (relógio em teste é o `time-machine`) |
 | Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
 | Runtime | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime |
 | Exceções padrão | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas e código de terceiros em `vendor/` ficam fora do lint e do format (`extend-exclude` + `force-exclude`), como no Prettier e no jscpd |
@@ -307,3 +309,65 @@ que importa é a de uma função que já existe em outro arquivo):
 o Node fica em `frontend/`. A versão do jscpd é a do lockfile do projeto. Os relatórios de código
 morto e complexidade (`.jscpd-health.json`) são do projeto, porque os pontos de entrada são fatos
 dele.
+
+## Testes (pytest): hook `pytest-base`
+
+O pytest não tem `extends` e não mescla configs (vale o primeiro arquivo achado), então não há
+cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`, e o hook
+`pytest-base` (`check_pytest.py`) reprova, com o motivo, quando falta o que o padrão exige.
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: pytest-v1.0.0
+  hooks:
+    - id: pytest-base
+      args: [backend] # a pasta do pacote Python, quando o pyproject.toml não está na raiz
+```
+
+| Exigido | Por quê |
+|---|---|
+| `strict = true` | pytest 9: marker não declarado, opção de config desconhecida e `xfail` que passa viram erro |
+| `filterwarnings` começando por `"error"` | aviso (depreciação, inclusive) reprova na hora |
+| `python_files = ["test_*.py"]` | uma forma só de nome de arquivo de teste |
+| `addopts` com `--disable-socket` e `--allow-hosts=<hosts>` | teste não acessa a rede; os hosts liberados (banco local) são fato do projeto |
+| `timeout = 60` | teste travado falha; o lento de propósito declara `@pytest.mark.timeout(...)` |
+| `[tool.coverage.run]` `branch = true`, `source`, sem `omit` | a cobertura conta os dois lados de cada `if`, sobre todo o código da aplicação |
+| `[tool.coverage.report]` `fail_under = 80` | piso igual para todos (o do front é o mesmo) |
+| `[dependency-groups] dev` com `pytest-cov`, `pytest-xdist`, `pytest-randomly`, `pytest-timeout`, `pytest-socket`, `time-machine` | cobertura, paralelismo, ordem aleatória (pega teste que depende de outro), timeout, rede bloqueada, relógio controlado |
+
+Fica com o projeto o que é fato dele: `testpaths`, `pythonpath`, markers, `asyncio_mode`,
+`DJANGO_SETTINGS_MODULE`, o número de workers do xdist. Na CI, a suíte roda com
+`uv run pytest --cov --cov-report=term-missing:skip-covered`. Os testes do hook ficam em
+`test_check_pytest.py` (`uvx pytest` na raiz deste repo).
+
+## Testes (vitest): `@welt-studio/vitest-config`
+
+Pacote em `vitest/`, instalado por tag do git como os outros. O projeto só declara os aliases (e um
+setup próprio, se tiver):
+
+```typescript
+// vitest.config.ts
+import { weltVitestConfig } from "@welt-studio/vitest-config";
+import { mergeConfig } from "vitest/config";
+
+import viteConfig from "./vite.config";
+
+export default mergeConfig(weltVitestConfig(), { resolve: viteConfig.resolve });
+```
+
+| O que fixa | Por quê |
+|---|---|
+| `jsdom`, `--no-webstorage` | o `localStorage` do Node 25+ cobriria o do jsdom |
+| `globals: false` | `describe`/`it`/`expect` importados de `"vitest"`: sem import, o `tsc` reprova |
+| `include: ["src/**/*.test.{ts,tsx}"]` | teste unitário ao lado do arquivo que testa; E2E é do Playwright |
+| `sequence.shuffle` | ordem aleatória |
+| Cobertura v8 sobre `src/**`, piso 80 nas quatro métricas | o mesmo piso do backend, contando o código que nenhum teste importa |
+| Setup | `jest-dom`, `cleanup()` entre testes (sem `globals` o Testing Library não limpa sozinho) e o servidor MSW com `onUnhandledFrame: "error"`: requisição sem handler reprova, nada sai para a rede. O projeto registra os handlers com `server.use(...)` (`import { server } from "@welt-studio/vitest-config/server"`) |
+
+O jsdom e o `@vitest/coverage-v8` vêm do pacote. O que o teste importa (`@testing-library/react`,
+`@testing-library/dom`, `@testing-library/jest-dom`, `msw`) o projeto declara, porque o pnpm só
+deixa importar o que está no `package.json` (e o Knip cobra o mesmo); os `peerDependencies` do
+pacote dizem as versões aceitas. Projeto sem nenhum teste reprova na CI (`vitest run` sem arquivo
+de teste sai com erro). Scripts: `test` (`vitest run`) e `test:coverage` (`vitest run --coverage`),
+este na CI.

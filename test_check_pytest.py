@@ -1,0 +1,124 @@
+"""Testes do hook `pytest-base` (`check_pytest.py`): `uvx pytest` na raiz deste repo."""
+
+import copy
+from pathlib import Path
+
+import pytest
+
+import check_pytest
+
+COMPLETE = {
+    "dependency-groups": {
+        "dev": [
+            "pytest==9.1.1",
+            "pytest-cov==7.1.0",
+            "pytest_xdist>=3.8",
+            "pytest-randomly==5.0.0",
+            "pytest-timeout==2.5.0",
+            "pytest-socket==0.8.1",
+            "time-machine==3.5.1",
+        ]
+    },
+    "tool": {
+        "pytest": {
+            "ini_options": {
+                "strict": True,
+                "filterwarnings": ["error", "ignore::DeprecationWarning:thirdparty"],
+                "python_files": ["test_*.py"],
+                "addopts": "-n 4 --disable-socket --allow-hosts=127.0.0.1,localhost",
+                "timeout": check_pytest.TIMEOUT_SECONDS,
+            }
+        },
+        "coverage": {
+            "run": {"branch": True, "source": ["app"]},
+            "report": {"fail_under": check_pytest.COVERAGE_FLOOR},
+        },
+    },
+}
+
+
+def without(path: tuple[str, ...]) -> dict:
+    config = copy.deepcopy(COMPLETE)
+    node = config
+    for key in path[:-1]:
+        node = node[key]
+    del node[path[-1]]
+    return config
+
+
+def test_complete_config_passes() -> None:
+    assert check_pytest.problems(COMPLETE) == []
+
+
+def test_addopts_as_list_passes() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["addopts"] = ["--disable-socket", "--allow-hosts=::1"]
+    assert check_pytest.problems(config) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        (("tool", "pytest", "ini_options", "strict"), "strict = true"),
+        (("tool", "pytest", "ini_options", "filterwarnings"), "filterwarnings"),
+        (("tool", "pytest", "ini_options", "python_files"), "python_files"),
+        (("tool", "pytest", "ini_options", "timeout"), "timeout = 60"),
+        (("tool", "coverage", "run", "branch"), "branch = true"),
+        (("tool", "coverage", "run", "source"), "source"),
+        (("tool", "coverage", "report", "fail_under"), "fail_under = 80"),
+    ],
+)
+def test_each_missing_option_is_reported(path: tuple[str, ...], expected: str) -> None:
+    found = check_pytest.problems(without(path))
+    assert len(found) == 1
+    assert expected in found[0]
+
+
+def test_warnings_not_starting_with_error_fail() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["filterwarnings"] = ["ignore", "error"]
+    assert check_pytest.problems(config) == [
+        '[tool.pytest.ini_options] filterwarnings começando por "error"'
+    ]
+
+
+def test_network_flags_are_required() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["addopts"] = "-n 4"
+    found = check_pytest.problems(config)
+    assert len(found) == 2
+    assert "--disable-socket" in found[0]
+    assert "--allow-hosts" in found[1]
+
+
+def test_other_floor_or_timeout_fails() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["coverage"]["report"]["fail_under"] = 70
+    config["tool"]["pytest"]["ini_options"]["timeout"] = 300
+    assert len(check_pytest.problems(config)) == 2
+
+
+def test_omit_fails() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["coverage"]["run"]["omit"] = ["*/routes/*"]
+    found = check_pytest.problems(config)
+    assert len(found) == 1
+    assert "sem omit" in found[0]
+
+
+def test_missing_plugins_are_listed() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["dependency-groups"]["dev"] = ["pytest==9.1.1", "pytest-cov==7.1.0"]
+    found = check_pytest.problems(config)
+    missing = "pytest-xdist, pytest-randomly, pytest-timeout, pytest-socket, time-machine"
+    assert found == [f"[dependency-groups] dev com: {missing}"]
+
+
+def test_main_reads_the_package_folder(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.pytest.ini_options]\n", encoding="utf-8")
+    assert check_pytest.main([str(tmp_path)]) == 1
+    assert "strict = true" in capsys.readouterr().err
+
+
+def test_main_without_pyproject_fails(tmp_path: Path) -> None:
+    assert check_pytest.main([str(tmp_path)]) == 1

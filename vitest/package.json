@@ -1,0 +1,36 @@
+{
+  "name": "@welt-studio/vitest-config",
+  "version": "1.0.0",
+  "description": "Configuração Vitest padrão da Welt Studio",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/welt-studio/lint-configs.git",
+    "directory": "vitest"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "./server": {
+      "types": "./server.d.ts",
+      "default": "./server.mjs"
+    }
+  },
+  "files": ["index.mjs", "index.d.ts", "server.mjs", "server.d.ts", "setup.mjs"],
+  "dependencies": {
+    "@vitest/coverage-v8": "5.0.5",
+    "jsdom": "30.1.3"
+  },
+  "peerDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "msw": "^3.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vitest": "^5.0.5"
+  }
+}

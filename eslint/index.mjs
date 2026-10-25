@@ -19,11 +19,16 @@ import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
 import eslintReact from "@eslint-react/eslint-plugin";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import vitest from "@vitest/eslint-plugin";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import i18next from "eslint-plugin-i18next";
+import { importX } from "eslint-plugin-import-x";
+import jestDom from "eslint-plugin-jest-dom";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
 import prettierRecommended from "eslint-plugin-prettier/recommended";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import testingLibrary from "eslint-plugin-testing-library";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -38,8 +43,10 @@ const complexityRules = {
   "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
 };
 
-// Arquivos de teste dos projetos.
-const testFiles = ["**/*.{test,spec}.{ts,tsx}", "**/__tests__/**", "**/test/**", "**/e2e/**"];
+// Arquivos de teste dos projetos: o unitário, com uma forma só de nome, fica ao lado do arquivo que
+// testa (é o `include` do `@welt-studio/vitest-config`); o E2E é do Playwright, em `e2e/`.
+const unitTestFiles = ["**/*.test.{ts,tsx}"];
+const testFiles = [...unitTestFiles, "**/e2e/**"];
 
 // Nos testes, tamanho não é defeito: `describe` → `describe` → `it` → callback já são 4 níveis, e
 // o `describe` cresce com o número de casos. O resto do padrão continua valendo — em especial as
@@ -71,6 +78,60 @@ const bestPracticesRules = {
   "prefer-object-spread": "error",
   "prefer-template": "error",
   "no-useless-concat": "error",
+  "no-implicit-coercion": "error",
+  "no-param-reassign": "error",
+  radix: "error",
+  "prefer-exponentiation-operator": "error",
+  "object-shorthand": "error",
+  "prefer-arrow-callback": "error",
+  // `alert`/`confirm`/`prompt` travam a página e fogem do design system: diálogo é componente.
+  "no-alert": "error",
+  "no-unmodified-loop-condition": "error",
+  "no-useless-return": "error",
+  "no-else-return": "error",
+  "no-lonely-if": "error",
+  "no-useless-rename": "error",
+  "no-unneeded-ternary": "error",
+  "no-return-assign": "error",
+  "no-self-compare": "error",
+  "no-template-curly-in-string": "error",
+  "no-constructor-return": "error",
+  "no-unreachable-loop": "error",
+  "no-sequences": "error",
+  "logical-assignment-operators": "error",
+  "default-case-last": "error",
+  "no-extend-native": "error",
+  "no-new-wrappers": "error",
+  "no-lone-blocks": "error",
+  "no-multi-assign": "error",
+  "no-object-constructor": "error",
+  "operator-assignment": "error",
+  "prefer-regex-literals": "error",
+  yoda: "error",
+  "no-useless-call": "error",
+  "no-useless-computed-key": "error",
+  "no-eval": "error",
+  "grouped-accessor-pairs": "error",
+  "no-inner-declarations": "error",
+};
+
+// Imports: sem ciclo, sem duplicata, na ordem do `I` do Ruff (biblioteca padrão, pacotes, código do
+// projeto, cada grupo separado por linha em branco). O resolver do TypeScript entende os aliases
+// do `tsconfig` (`@/…`); sem ele o `no-cycle` não veria os ciclos que passam por alias.
+const importXTypescriptSettings = importX.flatConfigs.typescript.settings;
+const importRules = {
+  "import-x/no-cycle": "error",
+  "import-x/no-duplicates": "error",
+  "import-x/no-self-import": "error",
+  "import-x/no-useless-path-segments": "error",
+  "import-x/order": [
+    "error",
+    {
+      groups: ["builtin", "external", "internal", ["parent", "sibling", "index"]],
+      "newlines-between": "always",
+      alphabetize: { order: "asc", caseInsensitive: true },
+    },
+  ],
 };
 
 // Comentários: espaço depois de `//`, frase começando em maiúscula e nenhuma pendência no código —
@@ -103,6 +164,21 @@ const typescriptRules = {
     { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
   ],
   "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+  "@typescript-eslint/no-import-type-side-effects": "error",
+  "@typescript-eslint/consistent-type-exports": "error",
+  // `switch` sobre união que esquece um caso reprova, mesmo com `default`.
+  "@typescript-eslint/switch-exhaustiveness-check": "error",
+  "@typescript-eslint/no-shadow": "error",
+  "@typescript-eslint/consistent-return": "error",
+  "@typescript-eslint/prefer-readonly": "error",
+  // Método como propriedade: o parâmetro passa a ser checado de forma segura (contravariante).
+  "@typescript-eslint/method-signature-style": "error",
+  // `[10, 2].sort()` ordena como texto.
+  "@typescript-eslint/require-array-sort-compare": "error",
+  "@typescript-eslint/default-param-last": "error",
+  "@typescript-eslint/no-loop-func": "error",
+  "@typescript-eslint/no-useless-empty-export": "error",
+  "@typescript-eslint/no-unnecessary-qualifier": "error",
 };
 
 // Desligar regra é exceção: nunca o arquivo inteiro, nunca sem dizer quais regras, nunca sem motivo
@@ -164,7 +240,16 @@ const untypedStandardRules = {
   ...bestPracticesRules,
   ...commentRules,
   ...disableDirectiveRules,
+  ...importRules,
 };
+
+// Testes unitários: `it.only` esquecido, teste sem `expect`, `expect` dentro de `if` (vitest);
+// query certa do Testing Library; matcher do jest-dom no lugar de comparar booleano.
+const unitTestConfigs = [
+  { ...vitest.configs.recommended, files: unitTestFiles },
+  { ...testingLibrary.configs["flat/react"], files: unitTestFiles },
+  { ...jestDom.configs["flat/recommended"], files: unitTestFiles },
+];
 
 const hookRules = reactHooks.configs.flat["recommended-latest"];
 const hookRuleNames = new Set(Object.keys(hookRules.rules).map((rule) => rule.split("/")[1]));
@@ -380,6 +465,21 @@ export function weltConfig({
     },
     { ...js.configs.recommended, files: formatted },
     { ...commentConfigs.recommended, files: formatted },
+    {
+      name: "welt/imports",
+      files: formatted,
+      plugins: { "import-x": importX },
+      settings: {
+        // Extensões e parser do TS (da config `typescript` do plugin): sem eles, o plugin não segue
+        // import para arquivo `.ts`. O resolver dela (pelo nome do pacote) sai: o `resolver-next`
+        // abaixo recebe a instância, que o pnpm resolve a partir deste pacote.
+        "import-x/extensions": importXTypescriptSettings["import-x/extensions"],
+        "import-x/external-module-folders":
+          importXTypescriptSettings["import-x/external-module-folders"],
+        "import-x/parsers": importXTypescriptSettings["import-x/parsers"],
+        "import-x/resolver-next": [createTypeScriptImportResolver({ project: tsconfigRootDir })],
+      },
+    },
     ...scoped(tseslint.configs.strictTypeChecked),
     ...scoped(tseslint.configs.stylisticTypeChecked),
     {
@@ -417,6 +517,7 @@ export function weltConfig({
       languageOptions: { globals: globals.node, parserOptions: { tsconfigRootDir } },
       rules: untypedStandardRules,
     },
+    ...unitTestConfigs,
     { name: "welt/tests", files: testFiles, rules: testRelaxedRules },
     // Prettier por último: formata como regra e desliga o que conflita com ele.
     { ...prettierRecommended, files: formatted },
