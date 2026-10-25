@@ -73,7 +73,6 @@ select = [
     "RSE",     # `raise X()` com parênteses à toa
     "FLY",     # `"".join([...])` estático que devia ser f-string
     "TID252",  # import relativo que sobe pasta: import absoluto
-    "INP",     # pasta de código sem `__init__.py` (confunde a coleta do pytest e o Pyright)
     "EM",      # mensagem da exceção numa variável antes do `raise` (o traceback não a repete)
 ]
 ignore = [
