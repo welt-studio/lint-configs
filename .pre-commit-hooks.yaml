@@ -1,4 +1,4 @@
-# Hooks que os projetos usam deste repo pelo pre-commit (`repo: https://github.com/welt-studio/lint-configs`).
+# Hooks que os projetos usam deste repo pelo pre-commit (`repo: https://github.com/welt-studio/standards`).
 
 # Mantém `ruff-base.toml` na raiz do projeto igual ao `ruff/base.toml` do `rev` declarado.
 - id: ruff-base

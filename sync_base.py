@@ -34,9 +34,9 @@ BASES: dict[str, tuple[tuple[str, str, str | None], ...]] = {
 
 def header(name: str, source: str, comment: str) -> str:
     lines = (
-        f"GERADO pelo hook `{name}-base` de github.com/welt-studio/lint-configs ({source}).",
+        f"GERADO pelo hook `{name}-base` de github.com/welt-studio/standards ({source}).",
         "NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no",
-        ".pre-commit-config.yaml; regra nova entra no lint-configs, para todos os projetos.",
+        ".pre-commit-config.yaml; regra nova entra no standards, para todos os projetos.",
     )
     return "".join(f"{comment} {line}\n" for line in lines) + "\n"
 
@@ -51,7 +51,7 @@ def sync(name: str, source: str, target: Path, comment: str | None) -> bool:
     target.write_text(expected, encoding="utf-8", newline="\n")
     action = "criado" if current is None else "restaurado"
     sys.stdout.write(
-        f"{name}-base: {target} {action} a partir do padrão (lint-configs). Adicione-o ao commit.\n"
+        f"{name}-base: {target} {action} a partir do padrão (standards). Adicione-o ao commit.\n"
     )
     return True
 

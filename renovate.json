@@ -1,4 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>welt-studio/lint-configs//renovate/default.json5"]
+  "extends": ["github>welt-studio/standards//renovate/default.json5"]
 }

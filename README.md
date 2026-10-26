@@ -1,6 +1,8 @@
-# Lint Configs
+# Standards
 
-Configurações de lint da Welt Studio, declaradas uma vez para todos os projetos.
+Os padrões de desenvolvimento da Welt Studio (lint, tipos, formatação, duplicação, testes, scripts
+de instalação do pnpm e a política de versões do Renovate), declarados uma vez para todos os
+projetos.
 
 ## ESLint: `@welt-studio/eslint-config`
 
@@ -8,7 +10,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/lint-configs#eslint-v4.2.0&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.2.1&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -79,8 +81,8 @@ cópia, mantida por um hook de pre-commit deste repo:
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
-  rev: ruff-v1.5.1
+- repo: https://github.com/welt-studio/standards
+  rev: ruff-v1.5.2
   hooks:
     - id: ruff-base
 ```
@@ -147,7 +149,7 @@ de terceiros recebe o código:
 ```json
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>welt-studio/lint-configs//renovate/default.json5"]
+  "extends": ["github>welt-studio/standards//renovate/default.json5"]
 }
 ```
 
@@ -189,8 +191,8 @@ do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
-  rev: pyright-v1.1.0
+- repo: https://github.com/welt-studio/standards
+  rev: pyright-v1.1.1
   hooks:
     - id: pyright-base
 ```
@@ -236,7 +238,7 @@ No comichub, a troca levou o Pyright de 2374 para 1476 erros (2026-10-26).
 Pacote em `tsconfig/`, instalado por tag do git como o do ESLint:
 
 ```json
-"@welt-studio/tsconfig": "github:welt-studio/lint-configs#tsconfig-v1.0.0&path:/tsconfig"
+"@welt-studio/tsconfig": "github:welt-studio/standards#tsconfig-v1.0.1&path:/tsconfig"
 ```
 
 ```jsonc
@@ -264,7 +266,7 @@ projeto, que não tem `.prettierrc`:
 ```json
 "prettier": "@welt-studio/prettier-config",
 "devDependencies": {
-  "@welt-studio/prettier-config": "github:welt-studio/lint-configs#prettier-v1.1.0&path:/prettier"
+  "@welt-studio/prettier-config": "github:welt-studio/standards#prettier-v1.1.1&path:/prettier"
 }
 ```
 
@@ -280,8 +282,8 @@ Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
-  rev: prettier-v1.1.0
+- repo: https://github.com/welt-studio/standards
+  rev: prettier-v1.1.1
   hooks:
     - id: prettier-base
       args: [frontend] # só onde o Prettier roda de `frontend/`
@@ -305,8 +307,8 @@ edição da cópia.
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
-  rev: jscpd-v1.0.1
+- repo: https://github.com/welt-studio/standards
+  rev: jscpd-v1.0.2
   hooks:
     - id: jscpd-base
 ```
@@ -355,7 +357,7 @@ com um `allowBuilds` de placeholders, que o hook então acusa.
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
+- repo: https://github.com/welt-studio/standards
   rev: pnpm-v1.0.0
   hooks:
     - id: pnpm-base
@@ -370,7 +372,7 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 
 ```yaml
 # .pre-commit-config.yaml
-- repo: https://github.com/welt-studio/lint-configs
+- repo: https://github.com/welt-studio/standards
   rev: pytest-v1.0.0
   hooks:
     - id: pytest-base

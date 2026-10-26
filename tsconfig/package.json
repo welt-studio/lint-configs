@@ -1,11 +1,11 @@
 {
   "name": "@welt-studio/tsconfig",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "tsconfig base da Welt Studio para os frontends em TypeScript",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/welt-studio/lint-configs.git",
+    "url": "git+https://github.com/welt-studio/standards.git",
     "directory": "tsconfig"
   },
   "files": ["base.json"]

@@ -1,12 +1,12 @@
 {
   "name": "@welt-studio/vitest-config",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Configuração Vitest padrão da Welt Studio",
   "type": "module",
   "license": "UNLICENSED",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/welt-studio/lint-configs.git",
+    "url": "git+https://github.com/welt-studio/standards.git",
     "directory": "vitest"
   },
   "exports": {
