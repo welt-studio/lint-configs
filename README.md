@@ -218,6 +218,19 @@ Nenhuma regra desligada: o projeto não declara `report*`. A versão do Pyright 
 (a fatia que se commita); a CI checa o projeto inteiro e fica vermelha até a fila zerar, porque um
 contrato quebrado aparece em quem chama a função, fora do commit.
 
+**Projeto Django:** os stubs do Django são os do `django-types`, feitos para o Pyright. O
+`django-stubs` depende do plugin do mypy, e sem ele todo campo de model sai `Unknown`. Os stubs do
+DRF continuam os do `djangorestframework-stubs` (o `djangorestframework-types` está parado e perde o
+tipo genérico do serializer). Como este puxa o `django-stubs` por dependência, e os dois se instalam
+na mesma pasta, o `pyproject.toml` o exclui:
+
+```toml
+[tool.uv]
+exclude-dependencies = ["django-stubs", "django-stubs-ext"]
+```
+
+No comichub, a troca levou o Pyright de 2374 para 1476 erros (2026-10-26).
+
 ## TypeScript: `@welt-studio/tsconfig`
 
 Pacote em `tsconfig/`, instalado por tag do git como o do ESLint:
@@ -309,6 +322,23 @@ que importa é a de uma função que já existe em outro arquivo):
 o Node fica em `frontend/`. A versão do jscpd é a do lockfile do projeto. Os relatórios de código
 morto e complexidade (`.jscpd-health.json`) são do projeto, porque os pontos de entrada são fatos
 dele.
+
+## pnpm: scripts de instalação das dependências
+
+Nenhuma dependência roda script de instalação (`preinstall`/`install`/`postinstall`), e dependência
+nova com script não entra calada. O padrão, no `pnpm-workspace.yaml` de todo projeto:
+
+```yaml
+# Todo pacote com script de instalação está aqui, negado, com o motivo de ele não fazer falta.
+allowBuilds:
+  esbuild: false # o binário vem pelas optionalDependencies (@esbuild/<plataforma>)
+```
+
+| Regra | Por quê |
+|---|---|
+| Toda entrada do `allowBuilds` é `false`, com comentário | `false` bloqueia o script de qualquer versão do pacote. Um `true` liberaria também as versões futuras (o cenário do worm Shai-Hulud: pacote legítimo, versão comprometida depois). Pacote que precise mesmo do script é exceção do PO, registrada no TECH_DEBT |
+| Sem `ignoreScripts`, sem `strictDepBuilds: false` e sem `--ignore-scripts` no `pnpm install` (CI, Dockerfile, Makefile) | o `strictDepBuilds` do pnpm vem ligado: pacote novo com script que não está na lista reprova o `pnpm install`, e alguém decide. O `ignoreScripts` também não roda nada, mas deixa o pacote novo entrar calado |
+| `.npmrc` na raiz com `ignore-scripts=true` (e auth/registry, se houver) | o pnpm 11+ só lê auth e registry dali; a linha vale para o npm: um `npm install` rodado por engano também não executa nada |
 
 ## Testes (pytest): hook `pytest-base`
 
