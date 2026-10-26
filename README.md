@@ -325,20 +325,27 @@ dele.
 
 ## pnpm: scripts de instalação das dependências
 
-Nenhuma dependência roda script de instalação (`preinstall`/`install`/`postinstall`), e dependência
-nova com script não entra calada. O padrão, no `pnpm-workspace.yaml` de todo projeto:
+Nenhuma dependência roda script de instalação (`preinstall`/`install`/`postinstall`), e o projeto
+só se instala pelo pnpm. São duas declarações, iguais em todo projeto, sem lista de pacotes:
 
 ```yaml
-# Todo pacote com script de instalação está aqui, negado, com o motivo de ele não fazer falta.
-allowBuilds:
-  esbuild: false # o binário vem pelas optionalDependencies (@esbuild/<plataforma>)
+# pnpm-workspace.yaml
+strictDepBuilds: false
+```
+
+```json
+// package.json (a versão do pnpm fica só no `packageManager`)
+"devEngines": {
+  "packageManager": { "name": "pnpm", "onFail": "error" }
+}
 ```
 
 | Regra | Por quê |
 |---|---|
-| Toda entrada do `allowBuilds` é `false`, com comentário | `false` bloqueia o script de qualquer versão do pacote. Um `true` liberaria também as versões futuras (o cenário do worm Shai-Hulud: pacote legítimo, versão comprometida depois). Pacote que precise mesmo do script é exceção do PO, registrada no TECH_DEBT |
-| Sem `ignoreScripts`, sem `strictDepBuilds: false` e sem `--ignore-scripts` no `pnpm install` (CI, Dockerfile, Makefile) | o `strictDepBuilds` do pnpm vem ligado: pacote novo com script que não está na lista reprova o `pnpm install`, e alguém decide. O `ignoreScripts` também não roda nada, mas deixa o pacote novo entrar calado |
-| `.npmrc` na raiz com `ignore-scripts=true` (e auth/registry, se houver) | o pnpm 11+ só lê auth e registry dali; a linha vale para o npm: um `npm install` rodado por engano também não executa nada |
+| Sem `allowBuilds` | no pnpm, pacote fora do `allowBuilds` nunca roda script. Sem lista, nada roda, em nenhuma versão (um `true` liberaria também as versões futuras: o cenário do worm Shai-Hulud). Pacote que precise mesmo do script é exceção do PO, registrada no TECH_DEBT |
+| `strictDepBuilds: false` | com ele ligado (o padrão), cada pacote com script teria de ser listado à mão como `false` só para a instalação não travar, inclusive os de outro sistema (o `fsevents` do macOS). Desligado, a instalação passa e avisa: `Ignored build scripts: …` |
+| `devEngines.packageManager` com `onFail: "error"` | `npm install` reprova (`EBADDEVENGINES`) sem instalar nada, então não há `.npmrc` a manter |
+| Sem `ignoreScripts` e sem `--ignore-scripts` no `pnpm install` | já não roda script nenhum; essas formas também pulam os scripts do próprio projeto e não avisam o que foi pulado |
 
 ## Testes (pytest): hook `pytest-base`
 
