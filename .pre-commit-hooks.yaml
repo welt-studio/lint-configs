@@ -42,3 +42,12 @@
   language: script
   pass_filenames: false
   always_run: true
+
+# Confere a política de scripts de instalação do pnpm (`strictDepBuilds: false`, sem `allowBuilds`,
+# npm recusado pelo `devEngines`): na raiz, ou na pasta do `pnpm-workspace.yaml` passada em `args`.
+- id: pnpm-base
+  name: pnpm-base (scripts de instalação, padrão da Welt Studio)
+  entry: check_pnpm.py
+  language: script
+  pass_filenames: false
+  always_run: true

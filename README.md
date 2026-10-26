@@ -347,6 +347,21 @@ strictDepBuilds: false
 | `devEngines.packageManager` com `onFail: "error"` | `npm install` reprova (`EBADDEVENGINES`) sem instalar nada, então não há `.npmrc` a manter |
 | Sem `ignoreScripts` e sem `--ignore-scripts` no `pnpm install` | já não roda script nenhum; essas formas também pulam os scripts do próprio projeto e não avisam o que foi pulado |
 
+O hook `pnpm-base` (`check_pnpm.py`) trava a política: reprova o commit se faltar o
+`strictDepBuilds: false` ou o `devEngines.packageManager`, ou se voltar `allowBuilds`,
+`onlyBuiltDependencies`, `dangerouslyAllowAllBuilds` ou `ignoreScripts`. Use o pnpm do
+`packageManager`: versões antigas do pnpm 12 reescrevem o `pnpm-workspace.yaml` a cada instalação
+com um `allowBuilds` de placeholders, que o hook então acusa.
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/lint-configs
+  rev: pnpm-v1.0.0
+  hooks:
+    - id: pnpm-base
+      args: [frontend] # só onde o pnpm-workspace.yaml não está na raiz
+```
+
 ## Testes (pytest): hook `pytest-base`
 
 O pytest não tem `extends` e não mescla configs (vale o primeiro arquivo achado), então não há
