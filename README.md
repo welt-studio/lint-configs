@@ -4,6 +4,28 @@ Os padrões de desenvolvimento da Welt Studio (lint, tipos, formatação, duplic
 de instalação do pnpm e a política de versões do Renovate), declarados uma vez para todos os
 projetos.
 
+## Desenvolver este repo
+
+O standards segue o padrão que publica, com os mesmos hooks dos projetos
+(`.pre-commit-config.yaml`); os hooks `*-base` rodam os scripts deste working tree, e as cópias que
+eles geram na raiz (`ruff-base.toml`, `pyright-base.json`, `.prettierignore`, `.jscpd*.json`) não se
+editam.
+
+| Parte                                       | Onde                                                                                                                                    |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Scripts dos hooks (stdlib, sem dependência) | `hooks/`, em strict no Pyright; testes em `tests/`                                                                                      |
+| Ferramentas do Python                       | `pyproject.toml` da raiz (grupo `dev`), só ambiente de desenvolvimento: `uv sync`                                                       |
+| Pacotes publicados                          | `eslint/`, `prettier/`, `tsconfig/`, `vitest/`, num workspace pnpm na raiz; o `package.json` da raiz é só o ambiente de desenvolvimento |
+
+```sh
+uv sync && pnpm install
+uvx pre-commit@4.7.0 install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+uv run pytest --cov   # testes dos hooks, com o piso de cobertura
+pnpm test             # teste do pacote de ESLint
+```
+
+O workflow `Test` roda os hooks no repo inteiro e os dois testes em todo push e PR.
+
 ## ESLint: `@welt-studio/eslint-config`
 
 Pacote em `eslint/`, instalado por tag do git (o repositório é público, então nenhum ambiente
@@ -40,23 +62,23 @@ recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Nod
 
 `weltConfig` aplica, nesta ordem:
 
-| Bloco | O que pega |
-|---|---|
-| `typescript-eslint` `strictTypeChecked` + `stylisticTypeChecked` | promise sem `await`/`catch`, `async` onde se espera retorno síncrono, `any` vazando, condição sempre verdadeira |
-| `@eslint-react/eslint-plugin` (`recommended-type-checked`) | key ausente ou instável, contexto recriado a cada render, API do React usada errado (substitui o `eslint-plugin-react`, parado no ESLint 9). As regras que repetem as do plugin de hooks ficam só lá |
-| `eslint-plugin-react-hooks` (`recommended-latest`) | regras dos hooks e do React Compiler |
-| `eslint-plugin-jsx-a11y-x` (`recommended`) | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10) |
-| `framework: "vite"` | no código do app, globais do navegador e Fast Refresh (`eslint-plugin-react-refresh`); configs de ferramenta (`*.config.ts`) ficam com os globais do Node. Liga também a arquitetura do app (`eslint-plugin-boundaries`, ver "Arquitetura do front"). Next não é suportado: os apps são Vite |
-| `@tanstack/eslint-plugin-query` (`query: true`) | chave de query incompleta, `QueryClient` instável |
-| `eslint-plugin-i18next` (`i18n: true`) | texto visível escrito direto no JSX (entre tags ou em qualquer atributo) ou num toast (`toast("…")`, `toast.error("…")`, `description`, `toast.promise`). Ficam de fora só os atributos e chaves de objeto que são código — rota (`href`, `to`), `data-*`, `testId`, ícone (`name`, `icon`), classe (`className`, `classNames`, `cn(...)`), cor, `aria-hidden`, SVG, `type` —, locale e formato (`toLocaleString`, `Intl.*`), `toast.dismiss(id)` e os testes. Prop nova é cobrada até entrar nessa lista: erro a mais aparece, erro a menos passa calado. Vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
-| `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
-| Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
-| Regras com tipo além do `strict` | `switch` sobre união que esquece um caso (`switch-exhaustiveness-check`), sombra de variável, retorno inconsistente, `readonly` onde cabe, método como propriedade (`method-signature-style`), `sort()` sem comparador, import/export de tipo marcado como tipo |
-| Imports (`eslint-plugin-import-x`) | ciclo de import (resolvendo os aliases do `tsconfig`), import duplicado, import de si mesmo, caminho com segmento inútil e a ordem (biblioteca padrão, pacotes, código do projeto, um grupo por bloco, como o `I` do Ruff). Os aliases resolvem pelos `tsconfig.json` versionados no git a partir do `tsconfigRootDir`, um por app num monorepo |
-| O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. Saída de gerador (`**/*.gen.ts`, como o `routeTree.gen.ts` do TanStack Router) também fica fora, como no `.prettierignore`. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
-| Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
-| Testes (`*.test.ts(x)` ao lado do código, `e2e/`) | sem limites de tamanho; o resto do padrão vale. Nos unitários, `@vitest/eslint-plugin` (`it.only` esquecido, teste sem `expect`, `expect` condicional), `eslint-plugin-testing-library` (query certa, sem `container`) e `eslint-plugin-jest-dom` (matcher no lugar de comparar booleano) |
-| Prettier (`eslint-plugin-prettier`) | formatação como regra, por último, com a config do projeto (o `@welt-studio/prettier-config`); `curly` religado depois dele |
+| Bloco                                                            | O que pega                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `typescript-eslint` `strictTypeChecked` + `stylisticTypeChecked` | promise sem `await`/`catch`, `async` onde se espera retorno síncrono, `any` vazando, condição sempre verdadeira                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `@eslint-react/eslint-plugin` (`recommended-type-checked`)       | key ausente ou instável, contexto recriado a cada render, API do React usada errado (substitui o `eslint-plugin-react`, parado no ESLint 9). As regras que repetem as do plugin de hooks ficam só lá                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `eslint-plugin-react-hooks` (`recommended-latest`)               | regras dos hooks e do React Compiler                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `eslint-plugin-jsx-a11y-x` (`recommended`)                       | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `framework: "vite"`                                              | no código do app, globais do navegador e Fast Refresh (`eslint-plugin-react-refresh`); configs de ferramenta (`*.config.ts`) ficam com os globais do Node. Liga também a arquitetura do app (`eslint-plugin-boundaries`, ver "Arquitetura do front"). Next não é suportado: os apps são Vite                                                                                                                                                                                                                                                                                                                                                           |
+| `@tanstack/eslint-plugin-query` (`query: true`)                  | chave de query incompleta, `QueryClient` instável                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `eslint-plugin-i18next` (`i18n: true`)                           | texto visível escrito direto no JSX (entre tags ou em qualquer atributo) ou num toast (`toast("…")`, `toast.error("…")`, `description`, `toast.promise`). Ficam de fora só os atributos e chaves de objeto que são código — rota (`href`, `to`), `data-*`, `testId`, ícone (`name`, `icon`), classe (`className`, `classNames`, `cn(...)`), cor, `aria-hidden`, SVG, `type` —, locale e formato (`toLocaleString`, `Intl.*`), `toast.dismiss(id)` e os testes. Prop nova é cobrada até entrar nessa lista: erro a mais aparece, erro a menos passa calado. Vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
+| `eslint-comments` + `linterOptions`                              | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Tamanho, complexidade e boas práticas                            | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Regras com tipo além do `strict`                                 | `switch` sobre união que esquece um caso (`switch-exhaustiveness-check`), sombra de variável, retorno inconsistente, `readonly` onde cabe, método como propriedade (`method-signature-style`), `sort()` sem comparador, import/export de tipo marcado como tipo                                                                                                                                                                                                                                                                                                                                                                                        |
+| Imports (`eslint-plugin-import-x`)                               | ciclo de import (resolvendo os aliases do `tsconfig`), import duplicado, import de si mesmo, caminho com segmento inútil e a ordem (biblioteca padrão, pacotes, código do projeto, um grupo por bloco, como o `I` do Ruff). Os aliases resolvem pelos `tsconfig.json` versionados no git a partir do `tsconfigRootDir`, um por app num monorepo                                                                                                                                                                                                                                                                                                        |
+| O que o git ignora                                               | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. Saída de gerador (`**/*.gen.ts`, como o `routeTree.gen.ts` do TanStack Router) também fica fora, como no `.prettierignore`. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado)                                                                                                                                                                                                  |
+| Comentários                                                      | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap)                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Testes (`*.test.ts(x)` ao lado do código, `e2e/`)                | sem limites de tamanho; o resto do padrão vale. Nos unitários, `@vitest/eslint-plugin` (`it.only` esquecido, teste sem `expect`, `expect` condicional), `eslint-plugin-testing-library` (query certa, sem `container`) e `eslint-plugin-jest-dom` (matcher no lugar de comparar booleano)                                                                                                                                                                                                                                                                                                                                                              |
+| Prettier (`eslint-plugin-prettier`)                              | formatação como regra, por último, com a config do projeto (o `@welt-studio/prettier-config`); `curly` religado depois dele                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 **Não há aviso:** toda regra é erro ou está desligada (os projetos rodam com `--max-warnings=0`, e
 um aviso já reprovaria).
@@ -89,12 +111,12 @@ src/
   components/  hooks/  lib/  stores/  types/  utils/  config/  assets/  testing/   # a base
 ```
 
-| Camada | Importa |
-|---|---|
-| arquivos de entrada da raiz de `src/` (`main.tsx`, `entry-server.tsx`, `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` | tudo |
-| `routes/` | rotas, features e a base |
-| `features/<nome>/` | a própria feature e a base, **nunca outra feature** |
-| a base | só a base |
+| Camada                                                                                                               | Importa                                             |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| arquivos de entrada da raiz de `src/` (`main.tsx`, `entry-server.tsx`, `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` | tudo                                                |
+| `routes/`                                                                                                            | rotas, features e a base                            |
+| `features/<nome>/`                                                                                                   | a própria feature e a base, **nunca outra feature** |
+| a base                                                                                                               | só a base                                           |
 
 - **Feature não conhece feature.** Quem junta duas é a rota ou o `app/`; o que duas usam sobe para a
   base. A página da feature fica em `features/<nome>/components/<nome>-page.tsx`, e a rota a importa
@@ -118,10 +140,11 @@ Os padrões casam pela direita, então valem igual com o app na raiz do projeto 
 ### Publicar uma versão
 
 1. Mudar `eslint/`, subir `version` no `eslint/package.json`.
-2. `pnpm test` em `eslint/`: o fixture (`eslint/test/fixture/`, um monorepo mínimo) roda o padrão
-   como um projeto que instala o pacote e confere o que cada arquivo reprova: feature importando
-   feature, base importando feature, pasta fora da estrutura, rota grossa e ciclo que só passa por
-   alias. Regra nova da arquitetura ganha caso no fixture. O workflow `Test` roda o mesmo em todo
+2. `pnpm test` na raiz: o fixture (`eslint/test/fixture/`, um monorepo mínimo) roda o padrão como
+   um projeto que instala o pacote (montado só com o que o `files` do `eslint/package.json` publica)
+   e confere o que cada arquivo reprova: feature importando feature, base importando feature, pasta
+   fora da estrutura, rota grossa e ciclo que só passa por alias. Regra nova da arquitetura ganha
+   caso no fixture, e módulo novo do pacote entra no `files`. O workflow `Test` roda o mesmo em todo
    push e PR, inclusive nos do Renovate que sobem os plugins.
 3. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
 4. O Renovate abre em cada projeto o PR que troca a tag, com o lockfile; revisar e fazer o merge.
@@ -166,14 +189,14 @@ commit. Com `--config`, a exclusão vale. Na CI, rodar de dentro do pacote tamb�
 que o base já exclui. Regra, limite e exceção vêm do base; precisou de regra nova, ela entra aqui,
 para todos, numa tag nova.
 
-| Bloco | O que fixa |
-|---|---|
-| `required-version` | a versão mínima do Ruff, a primeira que conhece todas as regras do padrão. A exata é a do `uv.lock` do projeto. Sem `preview`, porque uma versão patch do Ruff pode mudar o que está em preview |
+| Bloco                          | O que fixa                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `required-version`             | a versão mínima do Ruff, a primeira que conhece todas as regras do padrão. A exata é a do `uv.lock` do projeto. Sem `preview`, porque uma versão patch do Ruff pode mudar o que está em preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `select` explícito (sem `ALL`) | a união das famílias que os projetos usavam: pycodestyle, pyflakes, isort, naming, pyupgrade, bandit, bugbear, pylint, async, timezone, pathlib, Ruff, tryceratops, logging (`LOG`), concatenação de string (`ISC001`/`ISC003`/`ISC004`), anotações, `TC`, FastAPI, Django, `noqa` sem código (`PGH004`) e sem uso (`RUF100`), `# type: ignore` sem o código da regra (`PGH003`). Desde a `ruff-v1.5.0`, também: estilo do pytest (`PT`), `breakpoint()` esquecido (`T10`), NumPy (`NPY`), `raise` (`RSE`), f-string (`FLY`), import relativo que sobe pasta (`TID252`) e mensagem de exceção numa variável (`EM`). Sem `INP`: as pastas que ela acusa (`tests/`, `scripts/`, `alembic/`) não são pacote de propósito, e o pytest no modo `importlib` não pede `__init__.py`. Sem `FA`: `from __future__ import annotations` é proibido (Python 3.14, PEP 649); `freezegun` também (relógio em teste é o `time-machine`) |
-| Limites | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50 |
-| Runtime | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime |
-| Exceções padrão | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas e código de terceiros em `vendor/` ficam fora do lint e do format (`extend-exclude` + `force-exclude`), como no Prettier e no jscpd |
-| `[format]` | aspas duplas, espaço, `lf` |
+| Limites                        | complexidade 12 (igual ao ESLint), `max-args` 5, `max-branches` 12, `max-returns` 6, `max-statements` 50                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Runtime                        | `TC001`–`TC003` desligadas: no Python 3.14 mover import "só de tipo" para `TYPE_CHECKING` quase não ganha nada, e Pydantic, SQLAlchemy e FastAPI leem anotações em runtime. Fica o contrário (`TC004`: import de runtime escondido em `TYPE_CHECKING`), com Pydantic e rotas do FastAPI marcados como runtime                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Exceções padrão                | testes (assert, número mágico, fixture, tamanho); `@declared_attr` do SQLAlchemy como classmethod; migrations geradas e código de terceiros em `vendor/` ficam fora do lint e do format (`extend-exclude` + `force-exclude`), como no Prettier e no jscpd                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `[format]`                     | aspas duplas, espaço, `lf`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 Os hooks `ruff` e `ruff-format` do projeto são locais (`uv run --project <pacote> ruff ...`), para
 a versão do Ruff morar só no `uv.lock`.
@@ -207,16 +230,16 @@ de terceiros recebe o código:
 
 O preset é lido do `main`, sem tag: mudar a política aqui vale para todos no merge.
 
-| Regra | O que faz |
-|---|---|
-| Calendário | uma rodada por mês, na madrugada do dia 1 (`America/Sao_Paulo`), com a manutenção do lockfile junto |
-| Idade mínima | a versão mais nova com pelo menos 7 dias de publicada; sem data no registro, fica retida. A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua na instalação |
-| Agrupamento | um PR por projeto com tudo que não é major; cada major no seu |
-| Merge | todo PR espera a aprovação do PO. O merge automático está desligado até a CI dos projetos montar as imagens Docker em PR e testar o que cada PR muda (o motivo e como religar estão no preset) |
-| PR separado | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config` |
-| Segurança | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima, todas num PR só por projeto (correções que dependem umas das outras resolvem o lockfile juntas). Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
-| Actions | fixadas por SHA, com a versão num comentário |
-| Fora do Renovate | os `overrides` do pnpm (correção de vulnerabilidade com faixa fechada) e o `rustsec/audit-check`, preso no commit do `main` até sair release em Node 24 |
+| Regra            | O que faz                                                                                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Calendário       | uma rodada por mês, na madrugada do dia 1 (`America/Sao_Paulo`), com a manutenção do lockfile junto                                                                                                                                                                                               |
+| Idade mínima     | a versão mais nova com pelo menos 7 dias de publicada; sem data no registro, fica retida. A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua na instalação                                                                                                                   |
+| Agrupamento      | um PR por projeto com tudo que não é major; cada major no seu                                                                                                                                                                                                                                     |
+| Merge            | todo PR espera a aprovação do PO. O merge automático está desligado até a CI dos projetos montar as imagens Docker em PR e testar o que cada PR muda (o motivo e como religar estão no preset)                                                                                                    |
+| PR separado      | majors, minor do Python (depende de wheel do `torch`), major de Node e pnpm, e o `@welt-studio/eslint-config`                                                                                                                                                                                     |
+| Segurança        | correção de vulnerabilidade (alerta do GitHub) abre PR na hora, fora do calendário e sem a idade mínima, todas num PR só por projeto (correções que dependem umas das outras resolvem o lockfile juntas). Correção do npm com menos de 7 dias ainda precisa do `minimumReleaseAgeExclude` do pnpm |
+| Actions          | fixadas por SHA, com a versão num comentário                                                                                                                                                                                                                                                      |
+| Fora do Renovate | os `overrides` do pnpm (correção de vulnerabilidade com faixa fechada) e o `rustsec/audit-check`, preso no commit do `main` até sair release em Node 24                                                                                                                                           |
 
 Os gerenciadores do Renovate leem sozinhos `package.json` (inclusive `packageManager` e
 `devEngines`), o `catalog` do pnpm, `pyproject.toml` e `uv.lock`, `.python-version`, Dockerfiles,
@@ -239,7 +262,7 @@ Conferir uma mudança no preset antes do merge:
 ## Pyright: `pyright/base.json` pelo hook `pyright-base`
 
 O mesmo esquema do Ruff: o `extends` do Pyright só lê arquivo local, e o hook mantém a cópia na raiz
-do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
+do projeto (o script `hooks/sync_base.py` é o mesmo dos dois hooks).
 
 ```yaml
 # .pre-commit-config.yaml
@@ -257,15 +280,15 @@ do projeto (o script `sync_base.py` é o mesmo dos dois hooks).
   "venvPath": "backend",
   "venv": ".venv",
   // Código da aplicação em strict; o resto (testes) fica no standard da base.
-  "strict": ["backend/app"]
+  "strict": ["backend/app"],
 }
 ```
 
-| Bloco | O que fixa |
-|---|---|
-| `typeCheckingMode` | `standard` em tudo; o código da aplicação sobe para strict pela lista `strict` do projeto (o strict cobra o contrato de cada função; nos testes, o ruído das fixtures sem anotação não paga a fila) |
-| `reportUnnecessaryTypeIgnoreComment` | `# type: ignore` que não ignora nada reprova; o código da regra é cobrado pelo `PGH003` do Ruff |
-| `ignore` | código de terceiros em `vendor/` não é acusado (como no Ruff, no Prettier e no jscpd); quem o usa continua conferido contra os tipos dele. O projeto não declara `ignore`, que substituiria este |
+| Bloco                                | O que fixa                                                                                                                                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `typeCheckingMode`                   | `standard` em tudo; o código da aplicação sobe para strict pela lista `strict` do projeto (o strict cobra o contrato de cada função; nos testes, o ruído das fixtures sem anotação não paga a fila) |
+| `reportUnnecessaryTypeIgnoreComment` | `# type: ignore` que não ignora nada reprova; o código da regra é cobrado pelo `PGH003` do Ruff                                                                                                     |
+| `ignore`                             | código de terceiros em `vendor/` não é acusado (como no Ruff, no Prettier e no jscpd); quem o usa continua conferido contra os tipos dele. O projeto não declara `ignore`, que substituiria este    |
 
 Nenhuma regra desligada: o projeto não declara `report*`. A versão do Pyright é o pin do
 `pyproject.toml` de cada projeto, que o Renovate sobe. O hook do projeto checa os arquivos do commit
@@ -297,8 +320,13 @@ Pacote em `tsconfig/`, instalado por tag do git como o do ESLint:
 // tsconfig.json do projeto: só fatos dele
 {
   "extends": "@welt-studio/tsconfig/base.json",
-  "compilerOptions": { "target": "ES2022", "lib": ["ES2022", "DOM"], "jsx": "react-jsx", "noEmit": true },
-  "include": ["src"]
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+  },
+  "include": ["src"],
 }
 ```
 
@@ -329,7 +357,8 @@ function, `lf`), com `printWidth` 100. O plugin de GLSL vem no pacote: formata s
 
 O `.prettierignore` fica só com o que é versionado e não se formata (lockfiles, `*.gen.ts`,
 `vendor/`, `*.min.*`, templates Jinja/Django). Ele não herda arquivo de pacote, então é cópia do
-`prettier/ignore`, mantida pelo hook `prettier-base` (o mesmo `sync_base.py` do Ruff e do Pyright).
+`prettier/ignore`, mantida pelo hook `prettier-base` (o mesmo `hooks/sync_base.py` do Ruff e do
+Pyright).
 Projeto em que o Prettier roda de dentro de uma pasta passa a pasta em `args`:
 
 ```yaml
@@ -350,7 +379,7 @@ entraria em `dist/`, artefatos e pastas ignoradas mais abaixo.
 
 ## jscpd: `jscpd/` pelo hook `jscpd-base`
 
-O jscpd não herda config de pacote, então o padrão chega como cópia, pelo mesmo `sync_base.py`: o
+O jscpd não herda config de pacote, então o padrão chega como cópia, pelo mesmo `hooks/sync_base.py`: o
 hook `jscpd-base` mantém na raiz do projeto o `.jscpd.json` (a trava) e o `.jscpd-semantic.json` (o
 relatório semântico). O JSON do jscpd não aceita comentário nem chave a mais (avisa campo
 desconhecido a cada execução), então a cópia sai sem o aviso de "gerado, não edite": ele fica no
@@ -365,10 +394,10 @@ edição da cópia.
     - id: jscpd-base
 ```
 
-| Arquivo | O que fixa |
-|---|---|
-| `.jscpd.json` (trava) | Python, TS/TSX, JS/JSX e Rust, no repo inteiro; qualquer clone reprova (`exitCode` 1). Fora: o que o git ignora (o jscpd lê o `.gitignore`), migrations, `*.gen.ts`, `vendor/` e `*.min.*`. Linhas de import (TS/JS e Python) não contam: dois arquivos com os mesmos imports não duplicam lógica |
-| `.jscpd-semantic.json` (relatório) | código que faz a mesma coisa escrito diferente, fora dos testes; não reprova. O projeto passa a pasta do relatório com `-o` |
+| Arquivo                            | O que fixa                                                                                                                                                                                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.jscpd.json` (trava)              | Python, TS/TSX, JS/JSX e Rust, no repo inteiro; qualquer clone reprova (`exitCode` 1). Fora: o que o git ignora (o jscpd lê o `.gitignore`), migrations, `*.gen.ts`, `vendor/` e `*.min.*`. Linhas de import (TS/JS e Python) não contam: dois arquivos com os mesmos imports não duplicam lógica |
+| `.jscpd-semantic.json` (relatório) | código que faz a mesma coisa escrito diferente, fora dos testes; não reprova. O projeto passa a pasta do relatório com `-o`                                                                                                                                                                       |
 
 O hook da trava é o mesmo em todo projeto, sobre o repo inteiro (`pass_filenames: false`: a cópia
 que importa é a de uma função que já existe em outro arquivo):
@@ -394,14 +423,14 @@ strictDepBuilds: false
 }
 ```
 
-| Regra | Por quê |
-|---|---|
-| Sem `allowBuilds` | no pnpm, pacote fora do `allowBuilds` nunca roda script. Sem lista, nada roda, em nenhuma versão (um `true` liberaria também as versões futuras: o cenário do worm Shai-Hulud). Pacote que precise mesmo do script é exceção do PO, registrada no TECH_DEBT |
-| `strictDepBuilds: false` | com ele ligado (o padrão), cada pacote com script teria de ser listado à mão como `false` só para a instalação não travar, inclusive os de outro sistema (o `fsevents` do macOS). Desligado, a instalação passa e avisa: `Ignored build scripts: …` |
-| `devEngines.packageManager` com `onFail: "error"` | `npm install` reprova (`EBADDEVENGINES`) sem instalar nada, então não há `.npmrc` a manter |
-| Sem `ignoreScripts` e sem `--ignore-scripts` no `pnpm install` | já não roda script nenhum; essas formas também pulam os scripts do próprio projeto e não avisam o que foi pulado |
+| Regra                                                          | Por quê                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sem `allowBuilds`                                              | no pnpm, pacote fora do `allowBuilds` nunca roda script. Sem lista, nada roda, em nenhuma versão (um `true` liberaria também as versões futuras: o cenário do worm Shai-Hulud). Pacote que precise mesmo do script é exceção do PO, registrada no TECH_DEBT |
+| `strictDepBuilds: false`                                       | com ele ligado (o padrão), cada pacote com script teria de ser listado à mão como `false` só para a instalação não travar, inclusive os de outro sistema (o `fsevents` do macOS). Desligado, a instalação passa e avisa: `Ignored build scripts: …`         |
+| `devEngines.packageManager` com `onFail: "error"`              | `npm install` reprova (`EBADDEVENGINES`) sem instalar nada, então não há `.npmrc` a manter                                                                                                                                                                  |
+| Sem `ignoreScripts` e sem `--ignore-scripts` no `pnpm install` | já não roda script nenhum; essas formas também pulam os scripts do próprio projeto e não avisam o que foi pulado                                                                                                                                            |
 
-O hook `pnpm-base` (`check_pnpm.py`) trava a política: reprova o commit se faltar o
+O hook `pnpm-base` (`hooks/check_pnpm.py`) trava a política: reprova o commit se faltar o
 `strictDepBuilds: false` ou o `devEngines.packageManager`, ou se voltar `allowBuilds`,
 `onlyBuiltDependencies`, `dangerouslyAllowAllBuilds` ou `ignoreScripts`. Use o pnpm do
 `packageManager`: versões antigas do pnpm 12 reescrevem o `pnpm-workspace.yaml` a cada instalação
@@ -436,7 +465,7 @@ que só lê o primeiro documento, passaria calado.
 
 O pytest não tem `extends` e não mescla configs (vale o primeiro arquivo achado), então não há
 cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`, e o hook
-`pytest-base` (`check_pytest.py`) reprova, com o motivo, quando falta o que o padrão exige.
+`pytest-base` (`hooks/check_pytest.py`) reprova, com o motivo, quando falta o que o padrão exige.
 
 ```yaml
 # .pre-commit-config.yaml
@@ -447,21 +476,21 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
       args: [backend] # a pasta do pacote Python, quando o pyproject.toml não está na raiz
 ```
 
-| Exigido | Por quê |
-|---|---|
-| `strict = true` | pytest 9: marker não declarado, opção de config desconhecida e `xfail` que passa viram erro |
-| `filterwarnings` começando por `"error"` | aviso (depreciação, inclusive) reprova na hora |
-| `python_files = ["test_*.py"]` | uma forma só de nome de arquivo de teste |
-| `addopts` com `--disable-socket` e `--allow-hosts=<hosts>` | teste não acessa a rede; os hosts liberados (banco local) são fato do projeto |
-| `timeout = 60` | teste travado falha; o lento de propósito declara `@pytest.mark.timeout(...)` |
-| `[tool.coverage.run]` `branch = true`, `source`, sem `omit` | a cobertura conta os dois lados de cada `if`, sobre todo o código da aplicação |
-| `[tool.coverage.report]` `fail_under = 80` | piso igual para todos (o do front é o mesmo) |
+| Exigido                                                                                                                          | Por quê                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `strict = true`                                                                                                                  | pytest 9: marker não declarado, opção de config desconhecida e `xfail` que passa viram erro                            |
+| `filterwarnings` começando por `"error"`                                                                                         | aviso (depreciação, inclusive) reprova na hora                                                                         |
+| `python_files = ["test_*.py"]`                                                                                                   | uma forma só de nome de arquivo de teste                                                                               |
+| `addopts` com `--disable-socket` e `--allow-hosts=<hosts>`                                                                       | teste não acessa a rede; os hosts liberados (banco local) são fato do projeto                                          |
+| `timeout = 60`                                                                                                                   | teste travado falha; o lento de propósito declara `@pytest.mark.timeout(...)`                                          |
+| `[tool.coverage.run]` `branch = true`, `source`, sem `omit`                                                                      | a cobertura conta os dois lados de cada `if`, sobre todo o código da aplicação                                         |
+| `[tool.coverage.report]` `fail_under = 80`                                                                                       | piso igual para todos (o do front é o mesmo)                                                                           |
 | `[dependency-groups] dev` com `pytest-cov`, `pytest-xdist`, `pytest-randomly`, `pytest-timeout`, `pytest-socket`, `time-machine` | cobertura, paralelismo, ordem aleatória (pega teste que depende de outro), timeout, rede bloqueada, relógio controlado |
 
 Fica com o projeto o que é fato dele: `testpaths`, `pythonpath`, markers, `asyncio_mode`,
 `DJANGO_SETTINGS_MODULE`, o número de workers do xdist. Na CI, a suíte roda com
 `uv run pytest --cov --cov-report=term-missing:skip-covered`. Os testes do hook ficam em
-`test_check_pytest.py` (`uvx pytest` na raiz deste repo).
+`tests/test_check_pytest.py` (ver "Desenvolver este repo").
 
 ## Testes (vitest): `@welt-studio/vitest-config`
 
@@ -478,14 +507,14 @@ import viteConfig from "./vite.config";
 export default mergeConfig(weltVitestConfig(), { resolve: viteConfig.resolve });
 ```
 
-| O que fixa | Por quê |
-|---|---|
-| `jsdom`, `--no-webstorage` | o `localStorage` do Node 25+ cobriria o do jsdom |
-| `globals: false` | `describe`/`it`/`expect` importados de `"vitest"`: sem import, o `tsc` reprova |
-| `include: ["src/**/*.test.{ts,tsx}"]` | teste unitário ao lado do arquivo que testa; E2E é do Playwright |
-| `sequence.shuffle` | ordem aleatória |
-| Cobertura v8 sobre `src/**`, piso 80 nas quatro métricas | o mesmo piso do backend, contando o código que nenhum teste importa |
-| Setup | `jest-dom`, `cleanup()` entre testes (sem `globals` o Testing Library não limpa sozinho) e o servidor MSW com `onUnhandledFrame: "error"`: requisição sem handler reprova, nada sai para a rede. O projeto registra os handlers com `server.use(...)` (`import { server } from "@welt-studio/vitest-config/server"`) |
+| O que fixa                                               | Por quê                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsdom`, `--no-webstorage`                               | o `localStorage` do Node 25+ cobriria o do jsdom                                                                                                                                                                                                                                                                     |
+| `globals: false`                                         | `describe`/`it`/`expect` importados de `"vitest"`: sem import, o `tsc` reprova                                                                                                                                                                                                                                       |
+| `include: ["src/**/*.test.{ts,tsx}"]`                    | teste unitário ao lado do arquivo que testa; E2E é do Playwright                                                                                                                                                                                                                                                     |
+| `sequence.shuffle`                                       | ordem aleatória                                                                                                                                                                                                                                                                                                      |
+| Cobertura v8 sobre `src/**`, piso 80 nas quatro métricas | o mesmo piso do backend, contando o código que nenhum teste importa                                                                                                                                                                                                                                                  |
+| Setup                                                    | `jest-dom`, `cleanup()` entre testes (sem `globals` o Testing Library não limpa sozinho) e o servidor MSW com `onUnhandledFrame: "error"`: requisição sem handler reprova, nada sai para a rede. O projeto registra os handlers com `server.use(...)` (`import { server } from "@welt-studio/vitest-config/server"`) |
 
 O jsdom e o `@vitest/coverage-v8` vêm do pacote. O que o teste importa (`@testing-library/react`,
 `@testing-library/dom`, `@testing-library/jest-dom`, `msw`) o projeto declara, porque o pnpm só

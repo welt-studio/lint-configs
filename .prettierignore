@@ -1,0 +1,28 @@
+# GERADO pelo hook `prettier-base` de github.com/welt-studio/standards (prettier/ignore).
+# NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no
+# .pre-commit-config.yaml; regra nova entra no standards, para todos os projetos.
+
+# Padrão de exclusão do Prettier da Welt Studio: só o que é versionado e não é nosso para formatar.
+# O que o git ignora fica fora porque o projeto inteiro se formata pelo hook do pre-commit, que só
+# recebe arquivo versionado (`pre-commit run prettier --all-files`), nunca por `prettier .`.
+
+# Lockfiles: gerados pelo gerenciador de pacotes, no formato dele. O Prettier reformataria a cada
+# commit e o próximo `install` desfaria, em toda linha do arquivo.
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI): o gerador reescreve
+# no estilo dele a cada rodada, e formatar só cria diff que a rodada seguinte desfaz.
+**/*.gen.ts
+
+# Código de terceiros, que entra no repo como está.
+**/vendor/**
+**/*.min.js
+**/*.min.mjs
+**/*.min.cjs
+**/*.min.css
+
+# Templates de servidor (Jinja, Django): o HTML tem tags `{% %}` e `{{ }}` que o Prettier não
+# entende, e ele reindenta e junta as tags, mudando o que o template gera.
+**/templates/**/*.html

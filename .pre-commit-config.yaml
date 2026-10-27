@@ -1,0 +1,185 @@
+# Pre-commit do próprio standards: o repo segue o padrão que publica, com os mesmos hooks dos
+# projetos. Instalar: uvx pre-commit@4.7.0 install --hook-type pre-commit --hook-type commit-msg
+#
+# Os hooks `*-base` rodam os scripts deste working tree (`hooks/`), não uma tag: o padrão em edição
+# é o que vale para o próprio repo. Nos projetos, os mesmos hooks vêm do `rev` de cada um.
+
+repos:
+  - repo: local
+    hooks:
+      # As cópias do padrão na raiz (`ruff-base.toml`, `pyright-base.json`, `.prettierignore`,
+      # `.jscpd*.json`), regeradas dos arquivos deste repo. Não se editam: o hook desfaz.
+      - id: ruff-base
+        name: ruff-base (padrão Ruff da Welt Studio)
+        entry: hooks/sync_base.py ruff
+        language: script
+        pass_filenames: false
+        always_run: true
+      - id: pyright-base
+        name: pyright-base (padrão Pyright da Welt Studio)
+        entry: hooks/sync_base.py pyright
+        language: script
+        pass_filenames: false
+        always_run: true
+      - id: prettier-base
+        name: prettier-base (padrão Prettier da Welt Studio)
+        entry: hooks/sync_base.py prettier
+        language: script
+        pass_filenames: false
+        always_run: true
+      - id: jscpd-base
+        name: jscpd-base (padrão jscpd da Welt Studio)
+        entry: hooks/sync_base.py jscpd
+        language: script
+        pass_filenames: false
+        always_run: true
+      # O `pyproject.toml` da raiz segue o padrão de testes; o `pnpm-workspace.yaml` e o `devEngines`,
+      # a política de scripts de instalação do pnpm.
+      - id: pytest-base
+        name: pytest-base (padrão de testes da Welt Studio)
+        entry: hooks/check_pytest.py
+        language: script
+        pass_filenames: false
+        always_run: true
+      - id: pnpm-base
+        name: pnpm-base (scripts de instalação, padrão da Welt Studio)
+        entry: hooks/check_pnpm.py
+        language: script
+        pass_filenames: false
+        always_run: true
+
+  # Python - Ruff e Pyright do venv da raiz (versões do `uv.lock`, a mesma que a CI roda).
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff Linter
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: Ruff Formatter
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      # O projeto inteiro (`pass_filenames: false`): os scripts dos hooks estão em strict sem fila.
+      - id: pyright
+        name: Pyright
+        entry: uv run pyright
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # JavaScript/TypeScript - Prettier, ESLint, tsc e Knip do workspace da raiz (versões do
+  # `pnpm-lock.yaml`), com os scripts do `package.json` como a única declaração de cada comando.
+  - repo: local
+    hooks:
+      # Todo arquivo de texto: o `--ignore-unknown` pula o que o Prettier não formata, e o que não se
+      # formata fica fora pelo `.prettierignore` (hook `prettier-base`).
+      - id: prettier
+        name: Prettier
+        entry: pnpm exec prettier --write --ignore-unknown
+        language: system
+        types: [text]
+      # Quem decide o que é lintado é o `eslint.config.mjs` (`files`, `untypedFiles`, `ignores`). O
+      # fixture do teste do ESLint tem config própria (o ESLint 10 usa a mais próxima do arquivo) e
+      # viola o padrão de propósito: quem o confere é o teste do pacote.
+      - id: eslint
+        name: ESLint
+        entry: pnpm run lint:files --fix
+        language: system
+        types_or: [javascript, ts]
+        exclude: ^eslint/test/fixture/
+      - id: type-check
+        name: TypeScript Check
+        entry: pnpm run type-check
+        language: system
+        files: (\.d\.ts|tsconfig[^/]*\.json|package\.json|pnpm-lock\.yaml)$
+        pass_filenames: false
+      # O grafo inteiro: o arquivo que fica órfão é o que o commit deixou de importar.
+      - id: knip
+        name: Knip
+        entry: pnpm run knip
+        language: system
+        files: (\.(js|mjs|cjs|ts)|package\.json|pnpm-workspace\.yaml|knip\.json)$
+        pass_filenames: false
+
+  # Duplicação - jscpd no repo inteiro, com a cópia do padrão (`.jscpd.json`).
+  - repo: local
+    hooks:
+      - id: jscpd
+        name: Duplicação (jscpd)
+        entry: pnpm run duplication
+        language: system
+        types_or: [python, ts, javascript]
+        pass_filenames: false
+
+  # Testes - no push (não travam o commit).
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Pytest (hooks)
+        entry: uv run pytest -q
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-push]
+      - id: package-tests
+        name: Testes dos pacotes (ESLint)
+        entry: pnpm test
+        language: system
+        files: ^eslint/
+        pass_filenames: false
+        stages: [pre-push]
+
+  # Security - Gitleaks (secret detection)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        name: Gitleaks (Detect secrets)
+
+  # Git - Commits convencionais
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # Git - Verificações básicas
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: Remove trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      # O lockfile do pnpm 12 tem dois documentos (o pnpm fixado e o lock). A flag
+      # `--allow-multiple-documents` fica só nele: valendo para todos os YAMLs, um `---` perdido num
+      # compose ou workflow (que só lê o primeiro documento) passaria calado.
+      - id: check-yaml
+        name: Check YAML syntax
+        exclude: (^|/)pnpm-lock\.yaml$
+      - id: check-yaml
+        name: Check YAML syntax (pnpm-lock, multi-documento)
+        alias: check-yaml-pnpm-lock
+        args: [--allow-multiple-documents]
+        files: (^|/)pnpm-lock\.yaml$
+      - id: check-json
+        name: Check JSON syntax
+        # JSONC: o Pyright e o TypeScript leem comentário; quem valida esses é a própria ferramenta.
+        exclude: (^|/)(tsconfig[^/]*|pyright-base|pyrightconfig)\.json$|^(pyright|tsconfig)/base\.json$
+      - id: check-toml
+        name: Check TOML syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect private keys
+
+# O Python dos hooks acompanha o minor do `.python-version`.
+default_language_version:
+  python: python3.14
+
+fail_fast: false

@@ -15,7 +15,8 @@ Uso: `sync_base.py <ruff|pyright|prettier|jscpd> [pasta]`. A cópia vai na raiz 
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+# A raiz deste repo, onde estão os padrões (`ruff/`, `pyright/`, ...); o script mora em `hooks/`.
+ROOT = Path(__file__).resolve().parent.parent
 
 # Padrão: as cópias, cada uma (arquivo do padrão neste repo, nome da cópia no projeto, marca de
 # comentário). Sem marca (`None`), o formato não aceita comentário nem chave a mais (o JSON do

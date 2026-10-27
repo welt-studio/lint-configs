@@ -3,34 +3,34 @@
 // (com a extensão: sem ela o Renovate procura `default.json`). Sem tag de propósito: a política
 // nova vale para todos no merge aqui.
 {
-  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    'config:recommended',
-    ':enablePreCommit',
+    "config:recommended",
+    ":enablePreCommit",
     // Actions fixadas por SHA, com a versão num comentário ao lado: uma tag pode ser movida, um SHA não.
-    'helpers:pinGitHubActionDigests',
+    "helpers:pinGitHubActionDigests",
     // Um PR por projeto com tudo que não é major; cada major vem no seu, para revisão.
-    'group:allNonMajor',
+    "group:allNonMajor",
   ],
 
   // Uma rodada por mês, na madrugada do dia 1. Correção de vulnerabilidade não espera o calendário:
   // o `vulnerabilityAlerts` (padrão do Renovate) abre o PR na hora, sem a idade mínima abaixo.
-  timezone: 'America/Sao_Paulo',
-  schedule: ['* 0-6 1 * *'],
+  timezone: "America/Sao_Paulo",
+  schedule: ["* 0-6 1 * *"],
   lockFileMaintenance: {
     enabled: true,
-    schedule: ['* 0-6 1 * *'],
+    schedule: ["* 0-6 1 * *"],
   },
 
   // A versão mais nova com pelo menos 7 dias de publicada. Versão sem data no registro fica retida.
   // A trava do pnpm (`minimumReleaseAge` do `pnpm-workspace.yaml`) continua valendo na instalação.
-  minimumReleaseAge: '7 days',
+  minimumReleaseAge: "7 days",
 
   // Todas as correções de vulnerabilidade de um projeto num PR só: correções que dependem umas das
   // outras (pacote e dependência dele, ambos com alerta) só resolvem o lockfile juntas, e um PR por
   // correção abriria dezenas de PRs de uma vez, cada um rodando a CI.
   vulnerabilityAlerts: {
-    groupName: 'security fixes',
+    groupName: "security fixes",
   },
 
   // Merge automático desligado (decisão do PO, 2026-10-23): a CI dos projetos ainda não monta as
@@ -43,73 +43,73 @@
 
   packageRules: [
     {
-      description: 'Minor do Python (3.14 → 3.15) é decisão do PO: depende de wheel das dependências pesadas (torch).',
-      matchDepNames: ['python'],
-      matchUpdateTypes: ['minor', 'major'],
-      groupName: 'Python',
+      description: "Minor do Python (3.14 → 3.15) é decisão do PO: depende de wheel das dependências pesadas (torch).",
+      matchDepNames: ["python"],
+      matchUpdateTypes: ["minor", "major"],
+      groupName: "Python",
       automerge: false,
     },
     {
-      description: 'Major de Node e pnpm vêm juntos em todos os lugares do projeto, para revisão.',
-      matchDepNames: ['node', 'pnpm'],
-      matchUpdateTypes: ['major'],
-      groupName: '{{depName}} major',
+      description: "Major de Node e pnpm vêm juntos em todos os lugares do projeto, para revisão.",
+      matchDepNames: ["node", "pnpm"],
+      matchUpdateTypes: ["major"],
+      groupName: "{{depName}} major",
       automerge: false,
     },
     {
-      description: 'Os padrões deste repo têm uma tag por pacote: o hook `ruff-base` só olha as `ruff-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^ruff-v/',
-      versioning: 'regex:^ruff-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "Os padrões deste repo têm uma tag por pacote: o hook `ruff-base` só olha as `ruff-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^ruff-v/",
+      versioning: "regex:^ruff-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'O hook `pyright-base` só as `pyright-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^pyright-v/',
-      versioning: 'regex:^pyright-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O hook `pyright-base` só as `pyright-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^pyright-v/",
+      versioning: "regex:^pyright-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'O pacote ESLint só as `eslint-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^eslint-v/',
-      versioning: 'regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O pacote ESLint só as `eslint-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^eslint-v/",
+      versioning: "regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'E o pacote do tsconfig só as `tsconfig-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^tsconfig-v/',
-      versioning: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "E o pacote do tsconfig só as `tsconfig-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^tsconfig-v/",
+      versioning: "regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'E o pacote do Prettier (e o hook `prettier-base`) só as `prettier-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^prettier-v/',
-      versioning: 'regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "E o pacote do Prettier (e o hook `prettier-base`) só as `prettier-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^prettier-v/",
+      versioning: "regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'E o hook `jscpd-base` só as `jscpd-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^jscpd-v/',
-      versioning: 'regex:^jscpd-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "E o hook `jscpd-base` só as `jscpd-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^jscpd-v/",
+      versioning: "regex:^jscpd-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'E o hook `pytest-base` só as `pytest-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^pytest-v/',
-      versioning: 'regex:^pytest-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "E o hook `pytest-base` só as `pytest-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^pytest-v/",
+      versioning: "regex:^pytest-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'E o hook `pnpm-base` só as `pnpm-v*`.',
-      matchPackageNames: ['welt-studio/standards'],
-      matchCurrentValue: '/^pnpm-v/',
-      versioning: 'regex:^pnpm-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "E o hook `pnpm-base` só as `pnpm-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^pnpm-v/",
+      versioning: "regex:^pnpm-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
       // Exceção: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos runners, e a migração
       // para Node 24 (rustsec/audit-check#48) ainda não tem tag. Fica no commit do `main` até sair
       // uma release; aí esta regra sai.
-      description: 'rustsec/audit-check preso no commit do main até sair release em Node 24.',
-      matchPackageNames: ['rustsec/audit-check'],
+      description: "rustsec/audit-check preso no commit do main até sair release em Node 24.",
+      matchPackageNames: ["rustsec/audit-check"],
       enabled: false,
     },
     {
@@ -117,35 +117,35 @@
       // comando, que o runner (`welt-studio/renovate`, `allowedCommands`) permite e mais nenhum.
       // `--lockfile-only` só recalcula o lockfile; `--ignore-scripts` não deixa pacote rodar código.
       // PR próprio: se o lockfile falhar, não derruba o PR agrupado.
-      description: 'Os pacotes ESLint, tsconfig, Prettier e Vitest deste repo vêm cada um em PR próprio, com o lockfile, para revisão.',
+      description: "Os pacotes ESLint, tsconfig, Prettier e Vitest deste repo vêm cada um em PR próprio, com o lockfile, para revisão.",
       matchDepNames: [
-        '@welt-studio/eslint-config',
-        '@welt-studio/tsconfig',
-        '@welt-studio/prettier-config',
-        '@welt-studio/vitest-config',
+        "@welt-studio/eslint-config",
+        "@welt-studio/tsconfig",
+        "@welt-studio/prettier-config",
+        "@welt-studio/vitest-config",
       ],
-      groupName: '{{depName}}',
+      groupName: "{{depName}}",
       automerge: false,
       postUpgradeTasks: {
         // O pnpm da imagem do Renovate depende do Node instalado antes.
         installTools: { node: {}, pnpm: {} },
-        commands: ['pnpm install --lockfile-only --ignore-scripts'],
+        commands: ["pnpm install --lockfile-only --ignore-scripts"],
         // Da pasta do manifesto: o pnpm sobe até o `pnpm-workspace.yaml` do projeto.
-        workingDirTemplate: '{{packageFileDir}}',
-        fileFilters: ['**/pnpm-lock.yaml'],
+        workingDirTemplate: "{{packageFileDir}}",
+        fileFilters: ["**/pnpm-lock.yaml"],
       },
     },
     {
       // Os `overrides` são correções de vulnerabilidade em dependência indireta, com faixa fechada de
       // propósito; o Renovate as levaria para a major mais nova do pacote.
-      description: 'Overrides do pnpm são mantidos à mão, junto com o advisory que os criou.',
-      matchDepTypes: ['pnpm.overrides', 'pnpm-workspace.overrides'],
+      description: "Overrides do pnpm são mantidos à mão, junto com o advisory que os criou.",
+      matchDepTypes: ["pnpm.overrides", "pnpm-workspace.overrides"],
       enabled: false,
     },
     {
-      description: 'O GHCR não informa data de publicação: estas imagens andam pelo pacote (regras abaixo), com a idade mínima valendo.',
-      matchDatasources: ['docker'],
-      matchPackageNames: ['ghcr.io/pnpm/pnpm', 'ghcr.io/astral-sh/uv'],
+      description: "O GHCR não informa data de publicação: estas imagens andam pelo pacote (regras abaixo), com a idade mínima valendo.",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/pnpm/pnpm", "ghcr.io/astral-sh/uv"],
       enabled: false,
     },
   ],
@@ -156,82 +156,90 @@
       // `scripts/*.mjs` existe só pelo `UV_VERSION` do instalador do nebulai (débito no TECH_DEBT
       // dele: o script deve ler o `required-version`). Corrigido lá, esse padrão e o terceiro
       // `matchStrings` saem daqui.
-      description: 'uv: `[tool.uv] required-version`, imagem do GHCR e a constante do instalador do nebulai.',
-      customType: 'regex',
+      description: "uv: `[tool.uv] required-version`, imagem do GHCR e a constante do instalador do nebulai.",
+      customType: "regex",
       managerFilePatterns: [
-        '/(^|/)pyproject\\.toml$/',
-        '/(^|/)[^/]*Dockerfile[^/]*$/',
-        '/(^|/)scripts/[^/]+\\.m?js$/',
+        "/(^|/)pyproject\\.toml$/",
+        "/(^|/)[^/]*Dockerfile[^/]*$/",
+        "/(^|/)scripts/[^/]+\\.m?js$/",
       ],
       matchStrings: [
         'required-version\\s*=\\s*"==(?<currentValue>\\d+\\.\\d+\\.\\d+)"',
-        'ghcr\\.io/astral-sh/uv:(?<currentValue>\\d+\\.\\d+\\.\\d+)',
+        "ghcr\\.io/astral-sh/uv:(?<currentValue>\\d+\\.\\d+\\.\\d+)",
         'UV_VERSION\\s*=\\s*"(?<currentValue>\\d+\\.\\d+\\.\\d+)"',
       ],
-      depNameTemplate: 'uv',
-      datasourceTemplate: 'pypi',
+      depNameTemplate: "uv",
+      datasourceTemplate: "pypi",
     },
     {
       // O `ARG PNPM_VERSION` é só do comichub (débito no TECH_DEBT dele: `FROM` direto, como os
       // outros). Corrigido lá, o segundo `matchStrings` sai daqui.
-      description: 'pnpm nas imagens do GHCR e no `ARG PNPM_VERSION` dos Dockerfiles.',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)[^/]*Dockerfile[^/]*$/'],
+      description: "pnpm nas imagens do GHCR e no `ARG PNPM_VERSION` dos Dockerfiles.",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)[^/]*Dockerfile[^/]*$/"],
       matchStrings: [
-        'ghcr\\.io/pnpm/pnpm:(?<currentValue>\\d+\\.\\d+\\.\\d+)',
-        'ARG PNPM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)',
+        "ghcr\\.io/pnpm/pnpm:(?<currentValue>\\d+\\.\\d+\\.\\d+)",
+        "ARG PNPM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)",
       ],
-      depNameTemplate: 'pnpm',
-      datasourceTemplate: 'npm',
+      depNameTemplate: "pnpm",
+      datasourceTemplate: "npm",
     },
     {
       // O gerenciador npm não lê dependência do git com `&path:`. Gerenciador por regex não roda o
       // `pnpm install`: o lockfile vem do `postUpgradeTasks` da regra desses pacotes.
-      description: 'O pacote ESLint deste repo, pela tag `eslint-v*`.',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
-      matchStrings: ['github:welt-studio/standards#(?<currentValue>eslint-v\\d+\\.\\d+\\.\\d+)&path:/eslint'],
-      depNameTemplate: '@welt-studio/eslint-config',
-      packageNameTemplate: 'welt-studio/standards',
-      datasourceTemplate: 'github-tags',
-      versioningTemplate: 'regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O pacote ESLint deste repo, pela tag `eslint-v*`.",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)package\\.json$/", "/(^|/)pnpm-workspace\\.yaml$/"],
+      matchStrings: [
+        "github:welt-studio/standards#(?<currentValue>eslint-v\\d+\\.\\d+\\.\\d+)&path:/eslint",
+      ],
+      depNameTemplate: "@welt-studio/eslint-config",
+      packageNameTemplate: "welt-studio/standards",
+      datasourceTemplate: "github-tags",
+      versioningTemplate: "regex:^eslint-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'O pacote do tsconfig deste repo, pela tag `tsconfig-v*` (mesmo caso do ESLint).',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
-      matchStrings: ['github:welt-studio/standards#(?<currentValue>tsconfig-v\\d+\\.\\d+\\.\\d+)&path:/tsconfig'],
-      depNameTemplate: '@welt-studio/tsconfig',
-      packageNameTemplate: 'welt-studio/standards',
-      datasourceTemplate: 'github-tags',
-      versioningTemplate: 'regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O pacote do tsconfig deste repo, pela tag `tsconfig-v*` (mesmo caso do ESLint).",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)package\\.json$/", "/(^|/)pnpm-workspace\\.yaml$/"],
+      matchStrings: [
+        "github:welt-studio/standards#(?<currentValue>tsconfig-v\\d+\\.\\d+\\.\\d+)&path:/tsconfig",
+      ],
+      depNameTemplate: "@welt-studio/tsconfig",
+      packageNameTemplate: "welt-studio/standards",
+      datasourceTemplate: "github-tags",
+      versioningTemplate: "regex:^tsconfig-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'O pacote do Prettier deste repo, pela tag `prettier-v*` (mesmo caso do ESLint).',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
-      matchStrings: ['github:welt-studio/standards#(?<currentValue>prettier-v\\d+\\.\\d+\\.\\d+)&path:/prettier'],
-      depNameTemplate: '@welt-studio/prettier-config',
-      packageNameTemplate: 'welt-studio/standards',
-      datasourceTemplate: 'github-tags',
-      versioningTemplate: 'regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O pacote do Prettier deste repo, pela tag `prettier-v*` (mesmo caso do ESLint).",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)package\\.json$/", "/(^|/)pnpm-workspace\\.yaml$/"],
+      matchStrings: [
+        "github:welt-studio/standards#(?<currentValue>prettier-v\\d+\\.\\d+\\.\\d+)&path:/prettier",
+      ],
+      depNameTemplate: "@welt-studio/prettier-config",
+      packageNameTemplate: "welt-studio/standards",
+      datasourceTemplate: "github-tags",
+      versioningTemplate: "regex:^prettier-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'O pacote do Vitest deste repo, pela tag `vitest-v*` (mesmo caso do ESLint).',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)package\\.json$/', '/(^|/)pnpm-workspace\\.yaml$/'],
-      matchStrings: ['github:welt-studio/standards#(?<currentValue>vitest-v\\d+\\.\\d+\\.\\d+)&path:/vitest'],
-      depNameTemplate: '@welt-studio/vitest-config',
-      packageNameTemplate: 'welt-studio/standards',
-      datasourceTemplate: 'github-tags',
-      versioningTemplate: 'regex:^vitest-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$',
+      description: "O pacote do Vitest deste repo, pela tag `vitest-v*` (mesmo caso do ESLint).",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)package\\.json$/", "/(^|/)pnpm-workspace\\.yaml$/"],
+      matchStrings: [
+        "github:welt-studio/standards#(?<currentValue>vitest-v\\d+\\.\\d+\\.\\d+)&path:/vitest",
+      ],
+      depNameTemplate: "@welt-studio/vitest-config",
+      packageNameTemplate: "welt-studio/standards",
+      datasourceTemplate: "github-tags",
+      versioningTemplate: "regex:^vitest-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: 'Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.',
-      customType: 'regex',
-      managerFilePatterns: ['/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/'],
-      matchStrings: ['uvx (?<depName>[A-Za-z0-9_.-]+)@(?<currentValue>\\d+(?:\\.\\d+)+)'],
-      datasourceTemplate: 'pypi',
+      description: "Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"],
+      matchStrings: ["uvx (?<depName>[A-Za-z0-9_.-]+)@(?<currentValue>\\d+(?:\\.\\d+)+)"],
+      datasourceTemplate: "pypi",
     },
   ],
 }

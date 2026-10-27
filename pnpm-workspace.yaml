@@ -1,0 +1,13 @@
+# Os pacotes que os projetos instalam por tag do git; a raiz é só o ambiente de desenvolvimento do
+# repo (lint, formatação e os testes dos pacotes).
+packages:
+  - eslint
+  - prettier
+  - tsconfig
+  - vitest
+
+# Versão nova só entra com 7 dias de publicada.
+minimumReleaseAge: 10080
+
+# Nenhum script de instalação de dependência roda; a instalação só avisa (README, "pnpm").
+strictDepBuilds: false

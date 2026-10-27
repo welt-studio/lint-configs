@@ -1,0 +1,39 @@
+{
+  "name": "standards",
+  "private": true,
+  "type": "module",
+  "description": "Os padrões de desenvolvimento da Welt Studio; este package.json é só o ambiente de desenvolvimento do repo",
+  "packageManager": "pnpm@12.14.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "26.12.0",
+      "onFail": "download"
+    },
+    "packageManager": {
+      "name": "pnpm",
+      "onFail": "error"
+    }
+  },
+  "prettier": "@welt-studio/prettier-config",
+  "scripts": {
+    "test": "pnpm --recursive --no-bail run test",
+    "lint": "pnpm run lint:files .",
+    "lint:files": "eslint --max-warnings=0 --no-warn-ignored",
+    "type-check": "tsc --noEmit",
+    "duplication": "jscpd -c .jscpd.json .",
+    "knip": "knip --no-progress --include files,dependencies,unlisted,unresolved,binaries,duplicates"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@welt-studio/eslint-config": "workspace:*",
+    "@welt-studio/prettier-config": "workspace:*",
+    "@welt-studio/tsconfig": "workspace:*",
+    "eslint": "10.12.0",
+    "jscpd": "5.4.1",
+    "knip": "6.41.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.0"
+  }
+}

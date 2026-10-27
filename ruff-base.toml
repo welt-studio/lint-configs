@@ -1,0 +1,142 @@
+# GERADO pelo hook `ruff-base` de github.com/welt-studio/standards (ruff/base.toml).
+# NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no
+# .pre-commit-config.yaml; regra nova entra no standards, para todos os projetos.
+
+# Padrão Ruff da Welt Studio: o mesmo para todos os projetos Python.
+#
+# O projeto não usa este arquivo daqui: o hook `ruff-base` (este repo, `.pre-commit-hooks.yaml`)
+# copia-o para `ruff-base.toml` na raiz do projeto, e o `ruff.toml` de cada pacote faz `extend`
+# dessa cópia. O projeto só declara fatos dele (`known-first-party`); regra, limite e exceção vêm
+# daqui. Precisou de regra nova? Entra aqui, para todos, numa tag nova.
+
+target-version = "py314"
+line-length = 100
+# A versão exata do Ruff mora no `uv.lock` de cada projeto. Aqui fica só o piso: a primeira versão
+# que conhece todas as regras do `select`. Regra nova que exija um Ruff mais novo sobe o piso. Sem
+# `preview`: no Ruff, uma versão patch pode mudar o que está em preview.
+required-version = ">=0.17.1"
+# Fora do lint e do format, como no Prettier e no jscpd do padrão: migrations geradas pelo
+# Alembic/Django, que não são escritas à mão, e código de terceiros (transcrito ou copiado) em
+# `vendor/`, que segue o original. `force-exclude` faz valer também para arquivo passado pelo nome
+# (é assim que o hook e a CI rodam).
+extend-exclude = ["**/alembic/versions/**", "**/migrations/**", "**/vendor/**"]
+force-exclude = true
+
+[lint]
+# Lista explícita, sem `ALL`: subir o Ruff não liga regra nova sozinho.
+select = [
+    "E",       # pycodestyle errors
+    "W",       # pycodestyle warnings
+    "F",       # pyflakes
+    "I",       # isort
+    "N",       # pep8-naming
+    "UP",      # pyupgrade
+    "S",       # bandit (segurança)
+    "B",       # flake8-bugbear
+    "A",       # flake8-builtins
+    "C4",      # flake8-comprehensions
+    "C90",     # mccabe (complexidade)
+    "RET",     # flake8-return
+    "SIM",     # flake8-simplify
+    "ARG",     # flake8-unused-arguments
+    "PLC",     # pylint convention
+    "PLE",     # pylint errors
+    "PLR",     # pylint refactor (limites em [lint.pylint])
+    "PLW",     # pylint warnings
+    "ASYNC",   # async/await
+    "DTZ",     # datetime sem timezone
+    "PIE",     # flake8-pie
+    "T20",     # print
+    "ERA",     # código comentado
+    "TD",      # formato de TODO
+    "FIX",     # TODO/FIXME/HACK no código (vão para o débito técnico, parking lot ou roadmap)
+    "PTH",     # pathlib no lugar de os.path
+    "RUF",     # regras do Ruff (inclui RUF100: noqa que não suprime nada)
+    "PERF",    # perflint
+    "FURB",    # refurb
+    "BLE",     # except Exception cego
+    "G",       # formato de logging
+    "LOG",     # uso do logging (ex.: logger.exception fora de except, que perde o traceback)
+    "ISC001",  # concatenação implícita de string na mesma linha
+    "ISC003",  # concatenação explícita (+) onde a implícita basta
+    "ISC004",  # concatenação implícita dentro de lista/tupla (vírgula esquecida). ISC002 fica
+               # fora: conflita com o formatter.
+    "TRY",     # tryceratops
+    "ANN",     # anotações de tipo
+    "SLF",     # acesso a membro privado de fora da classe
+    "TC",      # TYPE_CHECKING: import usado em runtime escondido lá (TC004) e afins
+    "FAST",    # FastAPI (só dispara em código FastAPI)
+    "DJ",      # Django (só dispara em código Django)
+    "TID251",  # APIs proibidas ([lint.flake8-tidy-imports.banned-api])
+    "PGH003",  # `# type: ignore` sem o código da regra (o Pyright cobra o que não ignora nada)
+    "PGH004",  # noqa sem código
+    "PLC0415", # import dentro de função
+    "T10",     # `breakpoint()`/`pdb` esquecido
+    "NPY",     # API depreciada do NumPy (só dispara em código NumPy)
+    "PT",      # estilo do pytest (`raises` com `match`, assert simples, sem assert do unittest)
+    "RSE",     # `raise X()` com parênteses à toa
+    "FLY",     # `"".join([...])` estático que devia ser f-string
+    "TID252",  # import relativo que sobe pasta: import absoluto
+    "EM",      # mensagem da exceção numa variável antes do `raise` (o traceback não a repete)
+]
+ignore = [
+    "S105", # hardcoded-password-string: falso positivo com o token type "bearer" do OAuth2
+    "S106", # hardcoded-password-func-arg: idem
+    "B008", # chamada em default de argumento: é como o FastAPI declara `Depends(...)`
+    # Mover import "só de tipo" para `TYPE_CHECKING`: no Python 3.14 a anotação já é avaliada só
+    # quando pedida (PEP 649), então quase não há ganho; e Pydantic, SQLAlchemy (`Mapped[...]`) e
+    # FastAPI (toda função num `Depends`) leem anotações em runtime — mover quebra o app. O
+    # contrário continua cobrado: TC004 (import usado em runtime dentro do `TYPE_CHECKING`).
+    "TC001",
+    "TC002",
+    "TC003",
+    # Conflitam com o `ruff format` (docs.astral.sh/ruff/formatter/#conflicting-lint-rules).
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+]
+
+[lint.mccabe]
+# Igual ao `complexity` do ESLint.
+max-complexity = 12
+
+[lint.pylint]
+# Os padrões do Ruff (vindos do pylint). `max-args` 5 é o mesmo `max-params` do ESLint.
+max-args = 5
+max-branches = 12
+max-returns = 6
+max-statements = 50
+
+[lint.flake8-type-checking]
+# O Pydantic e as rotas do FastAPI leem as anotações em runtime: com isto, um tipo de campo ou de
+# rota importado só dentro de `TYPE_CHECKING` vira TC004 (quebraria o app ao subir).
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+runtime-evaluated-decorators = [
+    "fastapi.APIRouter.get",
+    "fastapi.APIRouter.post",
+    "fastapi.APIRouter.put",
+    "fastapi.APIRouter.patch",
+    "fastapi.APIRouter.delete",
+]
+
+[lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python >=3.14 já adia a avaliação das anotações (PEP 649)."
+# Relógio em teste tem uma lib só, a do padrão de testes (`pytest-base`).
+"freezegun".msg = "Use time-machine (padrão de testes da Welt Studio)."
+
+[lint.pep8-naming]
+# `@declared_attr` recebe a classe (`cls`): é como o SQLAlchemy declara coluna/relacionamento em
+# mixin. Sem isto, o N805 pediria `self`.
+classmethod-decorators = ["sqlalchemy.orm.declared_attr"]
+
+[lint.per-file-ignores]
+# Testes: assert, número mágico, fixture injetada e acesso a privado são o normal; tamanho não é
+# defeito (como os testes no ESLint). O resto do padrão vale.
+"**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
+"**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

@@ -19,7 +19,13 @@
       "default": "./server.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "server.mjs", "server.d.ts", "setup.mjs"],
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "server.mjs",
+    "server.d.ts",
+    "setup.mjs"
+  ],
   "dependencies": {
     "@vitest/coverage-v8": "5.0.5",
     "jsdom": "30.1.3"

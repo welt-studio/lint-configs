@@ -1,0 +1,26 @@
+{
+  "format": ["python", "typescript", "tsx", "javascript", "jsx", "rust"],
+  "ignore": [
+    "**/migrations/**",
+    "**/alembic/versions/**",
+    "**/*.gen.ts",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.mjs",
+    "**/*.min.cjs",
+    "**/tests/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/e2e/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/test_*.py",
+    "**/conftest.py",
+    "**/tests.rs"
+  ],
+  "semantic": { "enabled": true, "scope": "same" },
+  "kind": ["semantic"],
+  "reporters": ["json"],
+  "noColors": true,
+  "noTips": true
+}

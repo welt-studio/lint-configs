@@ -1,4 +1,4 @@
-"""Testes do hook `pnpm-base` (`check_pnpm.py`): `uvx pytest` na raiz deste repo."""
+"""Testes do hook `pnpm-base` (`hooks/check_pnpm.py`): `uv run pytest` na raiz deste repo."""
 
 import json
 from pathlib import Path

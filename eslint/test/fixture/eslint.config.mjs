@@ -2,8 +2,10 @@
 // `tsconfig.json` na raiz, que é o caso em que o resolver só com a pasta não achava os aliases.
 //
 // O teste copia esta pasta para fora do pacote (como um projeto que instala o pacote) e passa o
-// endereço do `index.mjs` em `WELT_ESLINT_CONFIG`.
-const { weltConfig } = await import(process.env.WELT_ESLINT_CONFIG);
+// endereço do `index.mjs` em `WELT_ESLINT_CONFIG`; aberta no lugar (no editor), usa o do pacote.
+const { weltConfig } = await import(
+  process.env.WELT_ESLINT_CONFIG ?? new URL("../../index.mjs", import.meta.url).href
+);
 
 const tsconfigRootDir = import.meta.dirname;
 

@@ -3,7 +3,7 @@
 # Mantém `ruff-base.toml` na raiz do projeto igual ao `ruff/base.toml` do `rev` declarado.
 - id: ruff-base
   name: ruff-base (padrão Ruff da Welt Studio)
-  entry: sync_base.py ruff
+  entry: hooks/sync_base.py ruff
   language: script
   pass_filenames: false
   always_run: true
@@ -11,7 +11,7 @@
 # Mantém `pyright-base.json` na raiz do projeto igual ao `pyright/base.json` do `rev` declarado.
 - id: pyright-base
   name: pyright-base (padrão Pyright da Welt Studio)
-  entry: sync_base.py pyright
+  entry: hooks/sync_base.py pyright
   language: script
   pass_filenames: false
   always_run: true
@@ -20,7 +20,7 @@
 # onde o Prettier roda, passada em `args` (ex.: `args: [frontend]`).
 - id: prettier-base
   name: prettier-base (padrão Prettier da Welt Studio)
-  entry: sync_base.py prettier
+  entry: hooks/sync_base.py prettier
   language: script
   pass_filenames: false
   always_run: true
@@ -29,7 +29,7 @@
 # iguais ao `jscpd/` do `rev` declarado.
 - id: jscpd-base
   name: jscpd-base (padrão jscpd da Welt Studio)
-  entry: sync_base.py jscpd
+  entry: hooks/sync_base.py jscpd
   language: script
   pass_filenames: false
   always_run: true
@@ -38,7 +38,7 @@
 # config, então não há cópia): na raiz, ou na pasta do pacote passada em `args` (ex.: `args: [backend]`).
 - id: pytest-base
   name: pytest-base (padrão de testes da Welt Studio)
-  entry: check_pytest.py
+  entry: hooks/check_pytest.py
   language: script
   pass_filenames: false
   always_run: true
@@ -47,7 +47,7 @@
 # npm recusado pelo `devEngines`): na raiz, ou na pasta do `pnpm-workspace.yaml` passada em `args`.
 - id: pnpm-base
   name: pnpm-base (scripts de instalação, padrão da Welt Studio)
-  entry: check_pnpm.py
+  entry: hooks/check_pnpm.py
   language: script
   pass_filenames: false
   always_run: true

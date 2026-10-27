@@ -1,6 +1,8 @@
-# Testes do próprio standards: os hooks em Python (`test_check_*.py`) e o pacote de ESLint
-# (`eslint/test/`). Rodam em todo push e PR na `main`, inclusive nos PRs do Renovate que sobem os
-# plugins: uma versão nova que mude o que o padrão reprova fica vermelha aqui antes de virar tag.
+# O próprio standards no padrão que ele publica: os hooks do `.pre-commit-config.yaml` no repo
+# inteiro (as cópias, Ruff, Pyright, Prettier, ESLint, tsc, Knip, jscpd, gitleaks e os básicos) e os
+# testes (os dos hooks em Python, com o piso de cobertura, e o do pacote de ESLint). Roda em todo push
+# e PR na `main`, inclusive nos PRs do Renovate que sobem os plugins: uma versão nova que mude o que o
+# padrão reprova fica vermelha aqui antes de virar tag.
 #
 # Todo `uses:` fixado por SHA, com a versão no comentário ao lado; o Renovate atualiza os dois.
 name: Test
@@ -20,29 +22,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  hooks:
-    name: Hooks (pytest)
+  test:
+    name: Padrão e testes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # Sem cache: o job só roda o pytest de versão fixa pelo `uvx`, sem lockfile que o invalidasse.
+      # O uv do `[tool.uv] required-version` do pyproject; o ambiente ativado põe no PATH o Python do
+      # `.python-version`, o que o `default_language_version` do pre-commit pede.
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          enable-cache: false
-      - run: uvx --python 3.14 pytest@9.1.1
-
-  eslint:
-    name: ESLint (pacote)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # O pnpm e o Node do `devEngines` do `eslint/package.json`, a única declaração de cada versão.
+          version-file: pyproject.toml
+          activate-environment: true
+      # O pnpm e o Node do `devEngines` do `package.json` da raiz, a única declaração de cada versão.
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
-          working-directory: eslint
           cache: true
           install: false
       - run: pnpm install --frozen-lockfile
-        working-directory: eslint
-      - run: pnpm test
-        working-directory: eslint
+      - run: uv sync --locked
+      - name: Hooks do padrão
+        run: uvx pre-commit@4.7.0 run --all-files --show-diff-on-failure
+      - name: Testes dos hooks (pytest, com cobertura)
+        if: ${{ !cancelled() }}
+        run: uv run pytest --cov --cov-report=term-missing:skip-covered
+      - name: Teste do pacote de ESLint
+        if: ${{ !cancelled() }}
+        run: pnpm test

@@ -2,5 +2,7 @@ __pycache__/
 *.egg-info/
 build/
 node_modules/
+.venv/
 .pytest_cache/
 .ruff_cache/
+.coverage

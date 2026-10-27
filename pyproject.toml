@@ -1,0 +1,48 @@
+# Ambiente de desenvolvimento dos scripts dos hooks (`sync_base.py`, `check_*.py`): não é pacote
+# publicado. Os hooks rodam nos projetos só com a stdlib; aqui ficam as ferramentas que conferem o
+# próprio código pelo padrão (Ruff, Pyright, pytest).
+[project]
+name = "standards"
+version = "0"
+requires-python = "==3.14.*"
+
+[dependency-groups]
+dev = [
+    "ruff==0.17.1",
+    "pyright==1.1.414",
+    # Padrão de testes da Welt Studio (hook `pytest-base`): ordem aleatória, timeout, rede bloqueada
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-xdist==3.8.0",
+    "pytest-randomly==5.0.0",
+    "pytest-timeout==2.4.0",
+    "pytest-socket==0.8.1",
+    "time-machine==3.5.1",
+]
+
+[tool.uv]
+# Sem `[build-system]`: o uv instala só as dependências, não o repo como pacote.
+package = false
+required-version = "==0.13.1"
+# Versão nova só entra com 7 dias de publicada (política de versões; correção de segurança mais nova
+# entra em `exclude-newer-package`).
+exclude-newer = "7 days"
+
+[tool.pytest.ini_options]
+strict = true
+filterwarnings = ["error"]
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+# Os scripts dos hooks rodam soltos (o pre-commit executa o arquivo) e importam uns aos outros pelo
+# nome; os testes os importam do mesmo jeito.
+pythonpath = ["hooks"]
+timeout = 60
+# Os scripts não usam rede: nenhum host liberado além do loopback.
+addopts = ["--disable-socket", "--allow-hosts=127.0.0.1,localhost"]
+
+[tool.coverage.run]
+branch = true
+source = ["hooks"]
+
+[tool.coverage.report]
+fail_under = 80

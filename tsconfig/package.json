@@ -8,5 +8,7 @@
     "url": "git+https://github.com/welt-studio/standards.git",
     "directory": "tsconfig"
   },
-  "files": ["base.json"]
+  "files": [
+    "base.json"
+  ]
 }

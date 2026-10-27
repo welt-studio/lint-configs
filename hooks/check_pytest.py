@@ -17,6 +17,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from parsed import Table, items, table
+
 # Teste que passa disso trava a suíte: falha em vez de esperar para sempre. Teste lento de propósito
 # declara o dele com `@pytest.mark.timeout(...)`.
 TIMEOUT_SECONDS = 60
@@ -45,19 +47,17 @@ def requirement_name(requirement: str) -> str:
 def addopts_tokens(value: object) -> list[str]:
     if isinstance(value, str):
         return shlex.split(value)
-    if isinstance(value, list):
-        return [str(item) for item in value]
-    return []
+    return [str(item) for item in items(value)]
 
 
-def pytest_problems(options: dict) -> list[str]:
-    problems = []
+def pytest_problems(options: Table) -> list[str]:
+    problems: list[str] = []
     if options.get("strict") is not True:
         problems.append(
             "[tool.pytest.ini_options] strict = true (marker, config e xfail estritos; pytest 9)"
         )
-    warnings = options.get("filterwarnings")
-    if not isinstance(warnings, list) or not warnings or warnings[0] != "error":
+    warnings = items(options.get("filterwarnings"))
+    if not warnings or warnings[0] != "error":
         problems.append('[tool.pytest.ini_options] filterwarnings começando por "error"')
     if options.get("python_files") != PYTHON_FILES:
         problems.append(f"[tool.pytest.ini_options] python_files = {PYTHON_FILES}")
@@ -71,22 +71,22 @@ def pytest_problems(options: dict) -> list[str]:
     return problems
 
 
-def coverage_problems(coverage: dict) -> list[str]:
-    problems = []
-    run = coverage.get("run", {})
+def coverage_problems(coverage: Table) -> list[str]:
+    problems: list[str] = []
+    run = table(coverage.get("run"))
     if run.get("branch") is not True:
         problems.append("[tool.coverage.run] branch = true")
     if not run.get("source"):
         problems.append("[tool.coverage.run] source com as pastas do código da aplicação")
     if "omit" in run:
         problems.append("[tool.coverage.run] sem omit: o piso vale para todo o código do source")
-    if coverage.get("report", {}).get("fail_under") != COVERAGE_FLOOR:
+    if table(coverage.get("report")).get("fail_under") != COVERAGE_FLOOR:
         problems.append(f"[tool.coverage.report] fail_under = {COVERAGE_FLOOR}")
     return problems
 
 
-def plugin_problems(config: dict) -> list[str]:
-    dev = config.get("dependency-groups", {}).get("dev", [])
+def plugin_problems(config: Table) -> list[str]:
+    dev = items(table(config.get("dependency-groups")).get("dev"))
     present = {requirement_name(item) for item in dev if isinstance(item, str)}
     missing = [plugin for plugin in REQUIRED_PLUGINS if plugin not in present]
     if not missing:
@@ -94,11 +94,11 @@ def plugin_problems(config: dict) -> list[str]:
     return [f"[dependency-groups] dev com: {', '.join(missing)}"]
 
 
-def problems(config: dict) -> list[str]:
-    tool = config.get("tool", {})
+def problems(config: Table) -> list[str]:
+    tool = table(config.get("tool"))
     return (
-        pytest_problems(tool.get("pytest", {}).get("ini_options", {}))
-        + coverage_problems(tool.get("coverage", {}))
+        pytest_problems(table(table(tool.get("pytest")).get("ini_options")))
+        + coverage_problems(table(tool.get("coverage")))
         + plugin_problems(config)
     )
 

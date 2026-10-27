@@ -1,8 +1,0 @@
-# Só para o teste do pacote (`pnpm test` nesta pasta): quem usa o pacote instala pela tag do git, e
-# este arquivo não vai junto. Segue a política do pnpm da Welt Studio (README, "pnpm").
-
-# Versão nova só entra com 7 dias de publicada.
-minimumReleaseAge: 10080
-
-# Nenhum script de instalação de dependência roda; a instalação só avisa.
-strictDepBuilds: false

@@ -16,6 +16,8 @@ import re
 import sys
 from pathlib import Path
 
+from parsed import Table, table
+
 # Chave de primeiro nível do YAML (coluna 0), com o valor e um comentário opcional. O
 # `pnpm-workspace.yaml` só precisa ser lido nas chaves de primeiro nível, e a stdlib não tem YAML.
 TOP_LEVEL_KEY = re.compile(r"^(?P<key>[A-Za-z][\w-]*):(?P<value>[^#]*)")
@@ -31,7 +33,7 @@ FORBIDDEN_KEYS = {
 
 
 def top_level_keys(text: str) -> dict[str, str]:
-    keys = {}
+    keys: dict[str, str] = {}
     for line in text.splitlines():
         match = TOP_LEVEL_KEY.match(line)
         if match:
@@ -41,7 +43,7 @@ def top_level_keys(text: str) -> dict[str, str]:
 
 def workspace_problems(text: str) -> list[str]:
     keys = top_level_keys(text)
-    problems = []
+    problems: list[str] = []
     if keys.get("strictDepBuilds") != "false":
         problems.append("pnpm-workspace.yaml: `strictDepBuilds: false`")
     problems.extend(
@@ -50,8 +52,8 @@ def workspace_problems(text: str) -> list[str]:
     return problems
 
 
-def package_problems(package: dict) -> list[str]:
-    manager = package.get("devEngines", {}).get("packageManager", {})
+def package_problems(package: Table) -> list[str]:
+    manager = table(table(package.get("devEngines")).get("packageManager"))
     if manager.get("name") == "pnpm" and manager.get("onFail") == "error":
         return []
     expected = '{ "name": "pnpm", "onFail": "error" }'
@@ -70,7 +72,7 @@ def main(args: list[str]) -> int:
         sys.stderr.write(f"pnpm-base: não existe: {', '.join(missing)}\n")
         return 1
     found = workspace_problems(workspace.read_text(encoding="utf-8")) + package_problems(
-        json.loads(package.read_text(encoding="utf-8"))
+        table(json.loads(package.read_text(encoding="utf-8")))
     )
     if not found:
         return 0

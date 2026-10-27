@@ -1,0 +1,22 @@
+{
+  "format": ["python", "typescript", "tsx", "javascript", "jsx", "rust"],
+  "ignore": [
+    "**/migrations/**",
+    "**/alembic/versions/**",
+    "**/*.gen.ts",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.mjs",
+    "**/*.min.cjs"
+  ],
+  "ignorePattern": [
+    "(?m)^[ \\t]*from[ \\t]+[.\\w]+[ \\t]+import[ \\t]+(\\([^)]*\\)|.*)$",
+    "(?m)^[ \\t]*import[ \\t]+[\\w.]+([ \\t]+as[ \\t]+\\w+)?([ \\t]*,[ \\t]*[\\w.]+([ \\t]+as[ \\t]+\\w+)?)*[ \\t]*$",
+    "(?m)^import\\s[^;]*?\\bfrom\\s+\"[^\"]+\";?",
+    "(?m)^import\\s+\"[^\"]+\";?"
+  ],
+  "reporters": ["console"],
+  "exitCode": 1,
+  "noColors": true,
+  "noTips": true
+}

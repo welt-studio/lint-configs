@@ -3,6 +3,8 @@
 // caso; o comentário no topo dele diz o que ele testa. Roda com `pnpm test` nesta pasta.
 //
 // O fixture roda como num projeto que instala o pacote:
+// - o pacote montado só com o que o `files` do `package.json` publica: arquivo esquecido na lista
+//   quebra aqui, não nos projetos depois da tag;
 // - copiado para uma pasta fora deste pacote: daqui de dentro, o resolver do TypeScript seria achado
 //   pelo nome no `node_modules` do pacote, o que num projeto com pnpm não acontece;
 // - num repositório git próprio: o resolver dos aliases lista os `tsconfig.json` versionados;
@@ -11,16 +13,30 @@
 //   quando o `cwd` do ESLint difere do diretório do processo.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { ESLint } from "eslint";
 
 const FIXTURE = fileURLToPath(new URL("fixture", import.meta.url));
-const PACKAGE_ENTRY = new URL("../index.mjs", import.meta.url).href;
+const PACKAGE = fileURLToPath(new URL("..", import.meta.url));
+
+/**
+ * Monta em `target` o pacote como o projeto o recebe: o `package.json` e o que o `files` lista. As
+ * dependências vêm do `node_modules` deste pacote, por link.
+ */
+function installPackage(target) {
+  const manifest = JSON.parse(readFileSync(join(PACKAGE, "package.json"), "utf8"));
+  mkdirSync(target, { recursive: true });
+  for (const file of ["package.json", ...manifest.files]) {
+    cpSync(join(PACKAGE, file), join(target, file), { recursive: true });
+  }
+  symlinkSync(join(PACKAGE, "node_modules"), join(target, "node_modules"), "dir");
+  return pathToFileURL(join(target, manifest.exports["."].default)).href;
+}
 
 // As regras que este teste cobre. As outras do padrão também rodam no fixture, mas não são o
 // assunto aqui.
@@ -49,7 +65,9 @@ before(() => {
   cpSync(FIXTURE, project, { recursive: true });
   execFileSync("git", ["init", "--quiet"], { cwd: project });
   execFileSync("git", ["add", "--all"], { cwd: project });
-  process.env.WELT_ESLINT_CONFIG = PACKAGE_ENTRY;
+  process.env.WELT_ESLINT_CONFIG = installPackage(
+    join(project, "..", "node_modules", "@welt-studio", "eslint-config"),
+  );
   process.chdir(project);
 });
 

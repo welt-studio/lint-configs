@@ -1,0 +1,11 @@
+{
+  // Os tipos que os pacotes publicam (`index.d.ts`), conferidos pelo próprio tsconfig base do repo.
+  "extends": "@welt-studio/tsconfig/base.json",
+  "compilerOptions": {
+    "target": "ES2025",
+    "lib": ["ES2025"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["*/*.d.ts"]
+}

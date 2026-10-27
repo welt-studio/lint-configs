@@ -1,4 +1,4 @@
-"""Testes do hook `pytest-base` (`check_pytest.py`): `uvx pytest` na raiz deste repo."""
+"""Testes do hook `pytest-base` (`hooks/check_pytest.py`): `uv run pytest` na raiz deste repo."""
 
 import copy
 from pathlib import Path

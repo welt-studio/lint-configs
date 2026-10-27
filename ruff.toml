@@ -1,0 +1,6 @@
+# O padrão Ruff deste repo é a cópia do próprio `ruff/base.toml`, mantida pelo hook `ruff-base`
+# como nos projetos. Aqui só fatos do repo.
+extend = "ruff-base.toml"
+# Os scripts dos hooks se importam pelo nome (o pre-commit executa o arquivo solto): o código
+# próprio é o de `hooks/`.
+src = ["hooks"]

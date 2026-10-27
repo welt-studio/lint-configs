@@ -14,7 +14,6 @@
  *   });
  */
 import { execFileSync } from "node:child_process";
-import { createRequire } from "node:module";
 
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
@@ -22,8 +21,6 @@ import eslintReact from "@eslint-react/eslint-plugin";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import vitest from "@vitest/eslint-plugin";
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
-import boundaries from "eslint-plugin-boundaries";
-import i18next from "eslint-plugin-i18next";
 import { importX } from "eslint-plugin-import-x";
 import jestDom from "eslint-plugin-jest-dom";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
@@ -33,6 +30,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import testingLibrary from "eslint-plugin-testing-library";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+import { architectureConfigs } from "./architecture.mjs";
+import { testFiles, toolConfigFiles, unitTestFiles } from "./files.mjs";
+import { i18nConfigs } from "./i18n.mjs";
 
 // Tamanho e complexidade. Valores medidos nos projetos: abaixo deles a regra vira ruído.
 const complexityRules = {
@@ -44,11 +45,6 @@ const complexityRules = {
   "max-statements": ["error", 30],
   "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
 };
-
-// Arquivos de teste dos projetos: o unitário, com uma forma só de nome, fica ao lado do arquivo que
-// testa (é o `include` do `@welt-studio/vitest-config`); o E2E é do Playwright, em `e2e/`.
-const unitTestFiles = ["**/*.test.{ts,tsx}"];
-const testFiles = [...unitTestFiles, "**/e2e/**"];
 
 // Nos testes, tamanho não é defeito: `describe` → `describe` → `it` → callback já são 4 níveis, e
 // o `describe` cresce com o número de casos. O resto do padrão continua valendo — em especial as
@@ -137,11 +133,13 @@ const importRules = {
 };
 
 // Comentários: espaço depois de `//`, frase começando em maiúscula e nenhuma pendência no código —
-// TODO/FIXME/HACK vão para o débito técnico, o parking lot ou o roadmap, onde alguém os vê.
+// marcador de pendência (os `terms` abaixo) vai para o débito técnico, o parking lot ou o roadmap,
+// onde alguém o vê.
 //
 // `capitalized-comments` não mexe em comentário que começa com nome de código (`hydrateRoot`,
 // `user_id`, `api.get`): o `--fix` do pre-commit o trocaria por `HydrateRoot`, que é outro nome.
-// `no-warning-comments` casa o marcador (`TODO:`, `TODO(`), não a palavra "todo" do português.
+// `no-warning-comments` casa o marcador com dois-pontos ou parêntese, não a palavra "todo" do
+// português.
 const CODE_IDENTIFIER = "[a-z][\\w$]*[A-Z0-9_.][\\w$.]*";
 const commentRules = {
   "capitalized-comments": [
@@ -224,7 +222,12 @@ function gitIgnored(dir) {
     output = execFileSync(
       "git",
       ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"],
-      { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: 64 * 1024 * 1024 },
+      {
+        cwd: dir,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        maxBuffer: 64 * 1024 * 1024,
+      },
     );
   } catch {
     return [];
@@ -294,10 +297,6 @@ const eslintReactWithoutHookTwins = (() => {
   return { ...config, rules };
 })();
 
-// Configs de ferramenta (`vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`): estão no
-// `tsconfig`, mas rodam no Node, não no app. Ficam fora do que o `framework` liga.
-const toolConfigFiles = ["**/*.config.{ts,mts,cts}"];
-
 // App Vite: o código do app roda no navegador, e o Fast Refresh exige que arquivo de componente só
 // exporte componente (senão o HMR recarrega a página).
 function frameworkConfigs(framework, files) {
@@ -315,214 +314,24 @@ function frameworkConfigs(framework, files) {
   ];
 }
 
-// Arquitetura do app (decisão do PO, 2026-10-27): as regras de direção do bulletproof-react com as
-// rotas por arquivo do TanStack Router. Toda pasta de `src/` é uma camada, e cada camada só importa as
-// de baixo:
-//   os arquivos de entrada na raiz de `src/` (`main.tsx`, `entry-server.tsx` do prerender SSR,
-//   `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` → tudo;
-//   `routes/` (rota fina: parâmetros, busca, loader, guarda) → features e base;
-//   `features/<nome>/` → a própria feature e a base, nunca outra feature;
-//   base (`components`, `hooks`, `lib`, `stores`, `types`, `utils`, `config`, `assets`, `testing`) → base.
-// Quem junta duas features é a rota ou o `app/`; o que duas features usam sobe para a base. Pasta ou
-// arquivo de `src/` fora dessa lista reprova (`no-unknown-files`): `App.tsx` e `router.tsx` moram em
-// `app/`. Os padrões casam pela direita, então valem igual na raiz do projeto e num app de monorepo
-// (`apps/admin/src/...`).
-const SHARED_FOLDERS = "(components|hooks|lib|stores|types|utils|config|assets|testing)";
-const architectureSettings = {
-  "boundaries/files": [
-    {
-      pattern: "**/src/{main.tsx,entry-server.tsx,routeTree.gen.ts,vite-env.d.ts}",
-      category: "entry",
-    },
-  ],
-  "boundaries/elements": [
-    { type: "app", pattern: "src/app" },
-    { type: "route", pattern: "src/routes" },
-    { type: "feature", pattern: "src/features/*", capture: ["featureName"] },
-    { type: "shared", pattern: `src/${SHARED_FOLDERS}` },
-  ],
-};
-const everyLayer = [
-  { to: { element: { type: ["app", "route", "feature", "shared"] } } },
-  { to: { file: { categories: "entry" } } },
-];
-const architectureRules = {
-  "boundaries/no-unknown-files": "error",
-  "boundaries/dependencies": [
-    "error",
-    {
-      default: "disallow",
-      policies: [
-        { from: { file: { categories: "entry" } }, allow: everyLayer },
-        { from: { element: { type: "app" } }, allow: everyLayer },
-        {
-          from: { element: { type: "route" } },
-          allow: [{ to: { element: { type: ["route", "feature", "shared"] } } }],
-        },
-        {
-          from: { element: { type: "feature" } },
-          allow: [
-            {
-              to: {
-                element: { type: "feature", captured: { featureName: "{{ from.featureName }}" } },
-              },
-            },
-            { to: { element: { type: "shared" } } },
-          ],
-        },
-        { from: { element: { type: "shared" } }, allow: [{ to: { element: { type: "shared" } } }] },
-      ],
-    },
-  ],
-};
-
-// Rota fina: a tela mora na feature, e o arquivo de rota só tem `createFileRoute` com parâmetros,
-// busca, loader e guarda. O limite trava a tela de voltar para a rota (decisão do PO, 2026-10-27).
-const ROUTE_MAX_LINES = 60;
-
-// O boundaries resolve os imports pelo `import/resolver` legado (do `eslint-module-utils`), não pelo
-// `resolver-next` do import-x: sem o resolver do TypeScript, import por alias (`@/features/...`) não
-// resolve e passa sem ser conferido. O resolver vai pelo caminho absoluto, uma das formas documentadas
-// do `import/resolver` (o README do `eslint-plugin-import`: "filesystem path to resolver"): ele é
-// dependência deste pacote, e o projeto não o declara. Pelo nome, ele só seria achado pelo hoist
-// interno do pnpm (`node_modules/.pnpm/node_modules`), que não é contrato.
-const TYPESCRIPT_RESOLVER = createRequire(import.meta.url).resolve(
-  "eslint-import-resolver-typescript",
-);
-
-// App Vite: a estrutura de pastas e a direção dos imports do padrão, em `src/`. Só no app: pacote e
-// biblioteca não têm rota nem feature.
-function architectureConfigs(framework, files, resolverOptions) {
-  if (framework !== "vite") {
-    return [];
-  }
-  const inSrc = (folder) => files.map((pattern) => [pattern, `**/src/${folder}**`]);
-  return [
-    {
-      name: "welt/architecture",
-      files: inSrc(""),
-      ignores: toolConfigFiles,
-      plugins: { boundaries },
-      settings: {
-        ...architectureSettings,
-        "import/resolver": { [TYPESCRIPT_RESOLVER]: resolverOptions },
-      },
-      rules: architectureRules,
-    },
-    {
-      name: "welt/thin-routes",
-      files: inSrc("routes/"),
-      rules: {
-        "max-lines": ["error", { max: ROUTE_MAX_LINES, skipBlankLines: true, skipComments: true }],
-      },
-    },
-  ];
-}
-
-// Atributos que são código, não texto de tela: rota, id de teste, nome de ícone, classe, cor, valor
-// de formulário, SVG. Todo o resto é cobrado — prop de componente nova (`badge`, `unit`, `detail`)
-// é texto até prova em contrário, porque erro a mais aparece e erro a menos passa calado. Os
-// padrões casam o nome inteiro; os `aria-*` que o leitor de tela lê continuam cobrados.
-const codeAttributes = [
-  // Os do próprio plugin (o `exclude` da opção substitui o padrão dele).
-  "className",
-  "styleName",
-  "style",
-  "type",
-  "key",
-  "id",
-  "width",
-  "height",
-  "\\w*(ClassName|Class|Color|Icon|Id)",
-  "classNames",
-  "data-[\\w-]+",
-  "testId",
-  "aria-(?!label$|description$|roledescription$|valuetext$|placeholder$)[\\w-]+",
-  "role",
-  // `action` fica cobrado: em componente é rótulo de botão (`action="Ver vendas"`), e o `action` do
-  // `<form>` no React 19 é função.
-  "(href|to|src|srcSet)",
-  "[a-z]\\w*(To|Href|Url|Path|Src)",
-  // `value` fica cobrado: no `<SelectItem>` é código, mas em componente de exibição
-  // (`<Metric value="3 Models">`) é texto de tela.
-  "(htmlFor|form|name|accept|autoComplete|inputMode|pattern|rel|target|method)",
-  "(icon|layoutId|variant|size|side|align|orientation|mode|slot|as|lang|dir|loading|decoding|sizes)",
-  "(viewBox|d|fill|stroke|xmlns|transform|points|cx|cy|r|x|y|x1|x2|y1|y2|clipPath|mask)",
-  "(fill|stroke|clip|font|text)[A-Z]\\w*",
-];
-
-// Chamadas cujos argumentos são código: classes (`cn`, `clsx`, `cva`, `twMerge`), locale e formato
-// (`toLocaleString("pt-BR")`, `new Intl.DateTimeFormat(...)`). Os primeiros itens são o padrão do
-// plugin (a opção substitui a lista dele).
-const codeCallees = [
-  "i18n(ext)?",
-  "t",
-  "require",
-  "addEventListener",
-  "removeEventListener",
-  "postMessage",
-  "getElementById",
-  "dispatch",
-  "commit",
-  "includes",
-  "indexOf",
-  "endsWith",
-  "startsWith",
-  "(cn|clsx|cva|twMerge)",
-  "toLocale\\w*String",
-  "Intl\\.\\w+",
-];
-
-// Objeto dentro do JSX segue a mesma lista dos atributos: `transition={{ type: "spring" }}` e
-// `toastOptions={{ classNames: { … } }}` são código; `{ label: "Valor" }` é texto. O primeiro padrão
-// é o do plugin (chave em CAIXA_ALTA).
-const codeObjectProperties = ["[A-Z_-]+", ...codeAttributes];
-
-// Toast é texto visível fora do JSX, que a regra do i18next (no modo só-JSX) não vê: `toast("…")`,
-// `toast.error("…")` e `description`/`title` nas opções dele. Casa só as chamadas que mostram
-// mensagem — `toast.dismiss("upload-id")` recebe um id, não texto.
-const TOAST_CALL =
-  'CallExpression:matches([callee.name="toast"], [callee.object.name="toast"][callee.property.name=/^(success|error|info|warning|loading|message)$/])';
-const TOAST_MESSAGE = "Texto do toast vem do catálogo de mensagens (t(...)), não escrito direto.";
-const toastLiteralRule = [
-  "error",
-  ...[
-    `${TOAST_CALL} > Literal[value=/\\S/]`,
-    `${TOAST_CALL} > TemplateLiteral`,
-    `${TOAST_CALL} > ObjectExpression > Property[key.name=/^(title|description)$/] > :matches(Literal[value=/\\S/], TemplateLiteral)`,
-    // `toast.promise(p, { loading: "…", success: "…", error: "…" })`
-    'CallExpression[callee.object.name="toast"][callee.property.name="promise"] > ObjectExpression > Property[key.name=/^(loading|success|error|description)$/] > :matches(Literal[value=/\\S/], TemplateLiteral)',
-  ].map((selector) => ({ selector, message: TOAST_MESSAGE })),
-];
-
-// Texto visível escrito direto no JSX (entre tags ou em atributo visível) ou num toast, num produto
-// traduzido: sai do catálogo de mensagens. Só procura o literal, então vale para qualquer biblioteca
-// de tradução — o padrão dos projetos traduzidos é o `i18next`. Teste escreve o texto esperado
-// direto, então fica de fora.
-const i18nConfigs = (files) => [
-  {
-    name: "welt/i18n",
+// O plugin de imports e o resolver dos aliases do `tsconfig` (`@/…`).
+function importsConfig(files, resolverOptions) {
+  return {
+    name: "welt/imports",
     files,
-    plugins: { i18next },
-    rules: {
-      "i18next/no-literal-string": [
-        "error",
-        {
-          mode: "jsx-only",
-          "jsx-attributes": { exclude: codeAttributes },
-          "object-properties": { exclude: codeObjectProperties },
-          callees: { exclude: codeCallees },
-        },
-      ],
-      "no-restricted-syntax": toastLiteralRule,
+    plugins: { "import-x": importX },
+    settings: {
+      // Extensões e parser do TS (da config `typescript` do plugin): sem eles, o plugin não segue
+      // import para arquivo `.ts`. O resolver dela (pelo nome do pacote) sai: o `resolver-next`
+      // abaixo recebe a instância, que o pnpm resolve a partir deste pacote.
+      "import-x/extensions": importXTypescriptSettings["import-x/extensions"],
+      "import-x/external-module-folders":
+        importXTypescriptSettings["import-x/external-module-folders"],
+      "import-x/parsers": importXTypescriptSettings["import-x/parsers"],
+      "import-x/resolver-next": [createTypeScriptImportResolver(resolverOptions)],
     },
-  },
-  {
-    name: "welt/i18n-tests",
-    files: testFiles,
-    rules: { "i18next/no-literal-string": "off", "no-restricted-syntax": "off" },
-  },
-];
+  };
+}
 
 const isWarn = (level) => level === "warn" || level === 1;
 
@@ -605,21 +414,7 @@ export function weltConfig({
     },
     { ...js.configs.recommended, files: formatted },
     { ...commentConfigs.recommended, files: formatted },
-    {
-      name: "welt/imports",
-      files: formatted,
-      plugins: { "import-x": importX },
-      settings: {
-        // Extensões e parser do TS (da config `typescript` do plugin): sem eles, o plugin não segue
-        // import para arquivo `.ts`. O resolver dela (pelo nome do pacote) sai: o `resolver-next`
-        // abaixo recebe a instância, que o pnpm resolve a partir deste pacote.
-        "import-x/extensions": importXTypescriptSettings["import-x/extensions"],
-        "import-x/external-module-folders":
-          importXTypescriptSettings["import-x/external-module-folders"],
-        "import-x/parsers": importXTypescriptSettings["import-x/parsers"],
-        "import-x/resolver-next": [createTypeScriptImportResolver(resolverOptions)],
-      },
-    },
+    importsConfig(formatted, resolverOptions),
     ...scoped(tseslint.configs.strictTypeChecked),
     ...scoped(tseslint.configs.stylisticTypeChecked),
     {

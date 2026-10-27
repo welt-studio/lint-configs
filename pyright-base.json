@@ -1,0 +1,24 @@
+// GERADO pelo hook `pyright-base` de github.com/welt-studio/standards (pyright/base.json).
+// NÃO EDITE: o hook desfaz qualquer mudança. A versão do padrão é o `rev` desse hook no
+// .pre-commit-config.yaml; regra nova entra no standards, para todos os projetos.
+
+// Padrão Pyright da Welt Studio: o mesmo para todos os projetos Python.
+//
+// O projeto não usa este arquivo daqui: o hook `pyright-base` (este repo, `.pre-commit-hooks.yaml`)
+// copia-o para `pyright-base.json` na raiz do projeto, e o `pyrightconfig.json` da raiz faz
+// `extends` dessa cópia. O projeto só declara fatos dele: caminhos (`include`, `exclude`,
+// `venvPath`/`venv`, `executionEnvironments`) e, em `strict`, as pastas de código da aplicação.
+// Regra, modo e exceção vêm daqui.
+{
+  // Standard em tudo; o código da aplicação sobe para strict pela lista `strict` do projeto
+  // (decisão do PO, 2026-10-24): o strict cobra o contrato de cada função (parâmetro, retorno,
+  // tipo desconhecido); nos testes, o ruído das fixtures sem anotação não paga a fila.
+  "typeCheckingMode": "standard",
+  // `# type: ignore` que não ignora nada reprova (como o RUF100 do Ruff). O código da regra entre
+  // colchetes é cobrado pelo PGH003 do padrão Ruff.
+  "reportUnnecessaryTypeIgnoreComment": "error",
+  // Código de terceiros (transcrito ou copiado) em `vendor/` segue o original: o Pyright não acusa
+  // nada dentro dele, como o Ruff, o Prettier e o jscpd do padrão. Quem o usa continua conferido
+  // contra os tipos dele. O projeto não declara `ignore`: declarar substituiria este.
+  "ignore": ["**/vendor/**"]
+}

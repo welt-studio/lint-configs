@@ -12,7 +12,9 @@
   "exports": {
     ".": "./index.mjs"
   },
-  "files": ["index.mjs"],
+  "files": [
+    "index.mjs"
+  ],
   "dependencies": {
     "prettier-plugin-glsl": "0.3.1"
   },
