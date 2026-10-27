@@ -14,9 +14,9 @@ export interface WeltConfigOptions {
   /** Liga React (`@eslint-react`), React Hooks e acessibilidade. Padrão: `true`. */
   react?: boolean;
   /**
-   * App Vite: no código do app, globais do navegador e Fast Refresh; as configs de ferramenta
-   * (`*.config.ts`) ficam com os do Node. Sem ele, os arquivos com tipo recebem os globais do Node
-   * (pacote ou biblioteca).
+   * App Vite: no código do app, globais do navegador, Fast Refresh e a arquitetura do padrão em
+   * `src/` (camadas, direção dos imports, rota fina); as configs de ferramenta (`*.config.ts`) ficam
+   * com os do Node. Sem ele, os arquivos com tipo recebem os globais do Node (pacote ou biblioteca).
    */
   framework?: "vite";
   /** Liga as regras do TanStack Query. Padrão: `false`. */

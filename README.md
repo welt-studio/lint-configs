@@ -10,7 +10,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.2.1&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.3.0&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -46,14 +46,14 @@ recebem o padrão inteiro menos as regras que exigem tipo, com os globais do Nod
 | `@eslint-react/eslint-plugin` (`recommended-type-checked`) | key ausente ou instável, contexto recriado a cada render, API do React usada errado (substitui o `eslint-plugin-react`, parado no ESLint 9). As regras que repetem as do plugin de hooks ficam só lá |
 | `eslint-plugin-react-hooks` (`recommended-latest`) | regras dos hooks e do React Compiler |
 | `eslint-plugin-jsx-a11y-x` (`recommended`) | acessibilidade (fork do `jsx-a11y` que suporta ESLint 10) |
-| `framework: "vite"` | no código do app, globais do navegador e Fast Refresh (`eslint-plugin-react-refresh`); configs de ferramenta (`*.config.ts`) ficam com os globais do Node. Next não é suportado: os apps são Vite |
+| `framework: "vite"` | no código do app, globais do navegador e Fast Refresh (`eslint-plugin-react-refresh`); configs de ferramenta (`*.config.ts`) ficam com os globais do Node. Liga também a arquitetura do app (`eslint-plugin-boundaries`, ver "Arquitetura do front"). Next não é suportado: os apps são Vite |
 | `@tanstack/eslint-plugin-query` (`query: true`) | chave de query incompleta, `QueryClient` instável |
 | `eslint-plugin-i18next` (`i18n: true`) | texto visível escrito direto no JSX (entre tags ou em qualquer atributo) ou num toast (`toast("…")`, `toast.error("…")`, `description`, `toast.promise`). Ficam de fora só os atributos e chaves de objeto que são código — rota (`href`, `to`), `data-*`, `testId`, ícone (`name`, `icon`), classe (`className`, `classNames`, `cn(...)`), cor, `aria-hidden`, SVG, `type` —, locale e formato (`toLocaleString`, `Intl.*`), `toast.dismiss(id)` e os testes. Prop nova é cobrada até entrar nessa lista: erro a mais aparece, erro a menos passa calado. Vale para qualquer biblioteca de tradução, e o padrão dos projetos traduzidos é o `i18next` |
 | `eslint-comments` + `linterOptions` | `eslint-disable` de arquivo inteiro, sem regra ou sem motivo (`-- motivo`), e diretiva que não desliga nada |
 | Tamanho, complexidade e boas práticas | `complexity` 12, função 80 linhas, arquivo 400, `max-statements` 30, `max-params` 5, `max-depth` 4, `max-nested-callbacks` 3, boas práticas, ignores comuns |
 | Regras com tipo além do `strict` | `switch` sobre união que esquece um caso (`switch-exhaustiveness-check`), sombra de variável, retorno inconsistente, `readonly` onde cabe, método como propriedade (`method-signature-style`), `sort()` sem comparador, import/export de tipo marcado como tipo |
-| Imports (`eslint-plugin-import-x`) | ciclo de import (resolvendo os aliases do `tsconfig`), import duplicado, import de si mesmo, caminho com segmento inútil e a ordem (biblioteca padrão, pacotes, código do projeto, um grupo por bloco, como o `I` do Ruff) |
-| O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
+| Imports (`eslint-plugin-import-x`) | ciclo de import (resolvendo os aliases do `tsconfig`), import duplicado, import de si mesmo, caminho com segmento inútil e a ordem (biblioteca padrão, pacotes, código do projeto, um grupo por bloco, como o `I` do Ruff). Os aliases resolvem pelos `tsconfig.json` versionados no git a partir do `tsconfigRootDir`, um por app num monorepo |
+| O que o git ignora | todo arquivo que o git ignora (`.gitignore` de qualquer pasta, `.git/info/exclude`) fica fora do lint, consultado no próprio git a partir do `tsconfigRootDir`: o lint local vê o mesmo que a CI. Saída de gerador (`**/*.gen.ts`, como o `routeTree.gen.ts` do TanStack Router) também fica fora, como no `.prettierignore`. O `ignores` do projeto fica só para o que está no git e não deve ser lintado (código gerado ou de terceiros versionado) |
 | Comentários | espaço depois de `//`, frase em maiúscula (menos quando começa com nome de código, como `hydrateRoot`), nenhum `TODO:`/`FIXME`/`HACK:` no código (vão para o débito técnico, parking lot ou roadmap) |
 | Testes (`*.test.ts(x)` ao lado do código, `e2e/`) | sem limites de tamanho; o resto do padrão vale. Nos unitários, `@vitest/eslint-plugin` (`it.only` esquecido, teste sem `expect`, `expect` condicional), `eslint-plugin-testing-library` (query certa, sem `container`) e `eslint-plugin-jest-dom` (matcher no lugar de comparar booleano) |
 | Prettier (`eslint-plugin-prettier`) | formatação como regra, por último, com a config do projeto (o `@welt-studio/prettier-config`); `curly` religado depois dele |
@@ -67,6 +67,45 @@ porque reaplicar pedaço do padrão é montar uma versão parcial dele.
 `eslint` (10), `@eslint/js` (10), `typescript` (6), `typescript-eslint` e `prettier` (3) são
 `peerDependencies`: a versão é a do projeto, e o padrão exige essas majors. Os plugins vêm com o
 pacote, em versão fixa — o projeto não declara nem registra nenhum deles.
+
+### Arquitetura do front
+
+Todo app Vite (`framework: "vite"`) segue a mesma estrutura em `src/`, com a direção dos imports
+travada pelo `eslint-plugin-boundaries` (decisão do PO, 2026-10-27). As regras são as do
+[bulletproof-react](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md),
+e as rotas são as rotas por arquivo do TanStack Router, finas como no
+[shadcn-admin](https://github.com/satnaing/shadcn-admin):
+
+```
+src/
+  main.tsx                 # monta o app
+  app/                     # providers, instância do router, layout global, error boundary
+  routes/                  # rotas por arquivo do TanStack Router (`createFileRoute`)
+  routeTree.gen.ts         # gerado pelo @tanstack/router-plugin
+  features/<nome>/         # um domínio: api/ components/ hooks/ stores/ types/ utils/ (só as que usa)
+  components/  hooks/  lib/  stores/  types/  utils/  config/  assets/  testing/   # a base
+```
+
+| Camada | Importa |
+|---|---|
+| arquivos da raiz de `src/` (`main.tsx`, `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` | tudo |
+| `routes/` | rotas, features e a base |
+| `features/<nome>/` | a própria feature e a base, **nunca outra feature** |
+| a base | só a base |
+
+- **Feature não conhece feature.** Quem junta duas é a rota ou o `app/`; o que duas usam sobe para a
+  base. A página da feature fica em `features/<nome>/components/<nome>-page.tsx`, e a rota a importa
+  direto: sem `index.ts` que só reexporta, que o bulletproof desaconselha (atrapalha o tree shaking
+  do Vite).
+- **Pasta de `src/` fora da lista reprova** (`boundaries/no-unknown-files`): a estrutura é a mesma em
+  todos os apps.
+- **Rota fina:** arquivo em `src/routes/` tem no máximo 60 linhas. Ele só declara o `createFileRoute`
+  (parâmetros, busca com zod, loader, guarda) e o componente vem da feature.
+- **Teste fica ao lado do código** e importa da própria feature e de `testing/`.
+- Pacote e biblioteca (sem `framework`) não têm essa estrutura: não têm rota nem feature.
+
+Os padrões casam pela direita, então valem igual com o app na raiz do projeto ou num monorepo
+(`apps/admin/src/...`).
 
 ### Publicar uma versão
 

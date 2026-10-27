@@ -1,6 +1,6 @@
 {
   "name": "@welt-studio/eslint-config",
-  "version": "4.2.1",
+  "version": "4.3.0",
   "description": "Configuração ESLint padrão da Welt Studio para frontends em TypeScript",
   "type": "module",
   "license": "UNLICENSED",
@@ -23,6 +23,7 @@
     "@vitest/eslint-plugin": "1.6.27",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-boundaries": "7.2.0",
     "eslint-plugin-i18next": "6.1.5",
     "eslint-plugin-import-x": "4.17.1",
     "eslint-plugin-jest-dom": "5.10.1",

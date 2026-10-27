@@ -14,6 +14,7 @@
  *   });
  */
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
@@ -21,6 +22,7 @@ import eslintReact from "@eslint-react/eslint-plugin";
 import pluginQuery from "@tanstack/eslint-plugin-query";
 import vitest from "@vitest/eslint-plugin";
 import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
+import boundaries from "eslint-plugin-boundaries";
 import i18next from "eslint-plugin-i18next";
 import { importX } from "eslint-plugin-import-x";
 import jestDom from "eslint-plugin-jest-dom";
@@ -205,6 +207,9 @@ const commonIgnores = [
   ".env*",
   "**/.next/**",
   "**/out/**",
+  // Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI): o gerador a reescreve
+  // no estilo dele a cada rodada. O mesmo padrão do `.prettierignore`.
+  "**/*.gen.ts",
 ];
 
 /**
@@ -232,6 +237,31 @@ function gitIgnored(dir) {
       const literal = path.replace(/[*?[\]{}()!]/g, "\\$&");
       return literal.endsWith("/") ? `${literal}**` : literal;
     });
+}
+
+/**
+ * Os `tsconfig.json` versionados a partir de `dir`, para o resolver de imports do TypeScript achar o
+ * de cada arquivo (e com ele os aliases `@/…`). Só a pasta não basta: num monorepo sem
+ * `tsconfig.json` na raiz, o resolver não acha o do app e todo import por alias fica sem resolver.
+ * Glob também não: varre o `node_modules`, e o tsconfig de pacote de terceiro derruba o resolver. O
+ * git só lista o que é do projeto. Fora de um repositório git, fica a pasta.
+ */
+function typescriptProjects(dir) {
+  let output;
+  try {
+    output = execFileSync("git", ["ls-files", "-z", "--", "tsconfig.json", "**/tsconfig.json"], {
+      cwd: dir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return [dir];
+  }
+  const projects = output
+    .split("\0")
+    .filter(Boolean)
+    .map((path) => `${dir}/${path}`);
+  return projects.length > 0 ? projects : [dir];
 }
 
 // Regras que não dependem de tipo: valem nos arquivos com tipo e nos que estão fora do `tsconfig`.
@@ -282,6 +312,102 @@ function frameworkConfigs(framework, files) {
       languageOptions: { globals: globals.browser },
     },
     { ...reactRefresh.configs.vite, files, ignores: toolConfigFiles },
+  ];
+}
+
+// Arquitetura do app (decisão do PO, 2026-10-27): as regras de direção do bulletproof-react com as
+// rotas por arquivo do TanStack Router. Toda pasta de `src/` é uma camada, e cada camada só importa as
+// de baixo:
+//   arquivos da raiz de `src/` (`main.tsx`, `routeTree.gen.ts`) e `app/` → tudo;
+//   `routes/` (rota fina: parâmetros, busca, loader, guarda) → features e base;
+//   `features/<nome>/` → a própria feature e a base, nunca outra feature;
+//   base (`components`, `hooks`, `lib`, `stores`, `types`, `utils`, `config`, `assets`, `testing`) → base.
+// Quem junta duas features é a rota ou o `app/`; o que duas features usam sobe para a base. Pasta de
+// `src/` fora dessa lista reprova (`no-unknown-files`). Os padrões casam pela direita, então valem
+// igual na raiz do projeto e num app de monorepo (`apps/admin/src/...`).
+const SHARED_FOLDERS = "(components|hooks|lib|stores|types|utils|config|assets|testing)";
+const architectureSettings = {
+  "boundaries/files": [{ pattern: "**/src/*.{ts,tsx}", category: "entry" }],
+  "boundaries/elements": [
+    { type: "app", pattern: "src/app" },
+    { type: "route", pattern: "src/routes" },
+    { type: "feature", pattern: "src/features/*", capture: ["featureName"] },
+    { type: "shared", pattern: `src/${SHARED_FOLDERS}` },
+  ],
+};
+const everyLayer = [
+  { to: { element: { type: ["app", "route", "feature", "shared"] } } },
+  { to: { file: { categories: "entry" } } },
+];
+const architectureRules = {
+  "boundaries/no-unknown-files": "error",
+  "boundaries/dependencies": [
+    "error",
+    {
+      default: "disallow",
+      policies: [
+        { from: { file: { categories: "entry" } }, allow: everyLayer },
+        { from: { element: { type: "app" } }, allow: everyLayer },
+        {
+          from: { element: { type: "route" } },
+          allow: [{ to: { element: { type: ["route", "feature", "shared"] } } }],
+        },
+        {
+          from: { element: { type: "feature" } },
+          allow: [
+            {
+              to: {
+                element: { type: "feature", captured: { featureName: "{{ from.featureName }}" } },
+              },
+            },
+            { to: { element: { type: "shared" } } },
+          ],
+        },
+        { from: { element: { type: "shared" } }, allow: [{ to: { element: { type: "shared" } } }] },
+      ],
+    },
+  ],
+};
+
+// Rota fina: a tela mora na feature, e o arquivo de rota só tem `createFileRoute` com parâmetros,
+// busca, loader e guarda. O limite trava a tela de voltar para a rota (decisão do PO, 2026-10-27).
+const ROUTE_MAX_LINES = 60;
+
+// O boundaries resolve os imports pelo `import/resolver` legado (do `eslint-module-utils`), não pelo
+// `resolver-next` do import-x: sem o resolver do TypeScript, import por alias (`@/features/...`) não
+// resolve e passa sem ser conferido. O resolver vai pelo caminho absoluto, que o `eslint-module-utils`
+// aceita no lugar do nome: pelo nome, ele procuraria o pacote a partir do projeto, que no pnpm não o
+// enxerga (é dependência deste pacote).
+const TYPESCRIPT_RESOLVER = createRequire(import.meta.url).resolve(
+  "eslint-import-resolver-typescript",
+);
+
+// App Vite: a estrutura de pastas e a direção dos imports do padrão, em `src/`. Só no app: pacote e
+// biblioteca não têm rota nem feature.
+function architectureConfigs(framework, files, resolverOptions) {
+  if (framework !== "vite") {
+    return [];
+  }
+  const inSrc = (folder) => files.map((pattern) => [pattern, `**/src/${folder}**`]);
+  return [
+    {
+      name: "welt/architecture",
+      files: inSrc(""),
+      ignores: toolConfigFiles,
+      plugins: { boundaries },
+      settings: {
+        ...architectureSettings,
+        "import/resolver": { [TYPESCRIPT_RESOLVER]: resolverOptions },
+      },
+      rules: architectureRules,
+    },
+    {
+      name: "welt/thin-routes",
+      files: inSrc("routes/"),
+      rules: {
+        "max-lines": ["error", { max: ROUTE_MAX_LINES, skipBlankLines: true, skipComments: true }],
+      },
+    },
   ];
 }
 
@@ -421,9 +547,10 @@ function warningsAsErrors(config) {
  *   globais do Node
  * @param {boolean} [options.react] liga React (`@eslint-react`), React Hooks e acessibilidade
  *   (padrão: true)
- * @param {"vite"} [options.framework] app Vite: no código do app, globais do navegador e Fast
- *   Refresh; as configs de ferramenta (`*.config.ts`) ficam com os do Node. Sem ele, os arquivos
- *   com tipo recebem os globais do Node (pacote ou biblioteca)
+ * @param {"vite"} [options.framework] app Vite: no código do app, globais do navegador, Fast
+ *   Refresh e a arquitetura do padrão em `src/` (camadas, direção dos imports, rota fina); as
+ *   configs de ferramenta (`*.config.ts`) ficam com os do Node. Sem ele, os arquivos com tipo
+ *   recebem os globais do Node (pacote ou biblioteca)
  * @param {boolean} [options.query] liga as regras do TanStack Query (padrão: false)
  * @param {boolean} [options.i18n] produto traduzido: texto visível no JSX só pelo catálogo
  *   (padrão: false)
@@ -449,6 +576,11 @@ export function weltConfig({
   );
 
   const gitIgnores = gitIgnored(tsconfigRootDir);
+  // Um resolver de imports só, para o import-x (ciclos) e o boundaries (arquitetura).
+  const resolverOptions = {
+    project: typescriptProjects(tsconfigRootDir),
+    noWarnOnMultipleProjects: true,
+  };
 
   const configs = [
     { name: "welt/ignores", ignores: [...commonIgnores, ...ignores] },
@@ -477,7 +609,7 @@ export function weltConfig({
         "import-x/external-module-folders":
           importXTypescriptSettings["import-x/external-module-folders"],
         "import-x/parsers": importXTypescriptSettings["import-x/parsers"],
-        "import-x/resolver-next": [createTypeScriptImportResolver({ project: tsconfigRootDir })],
+        "import-x/resolver-next": [createTypeScriptImportResolver(resolverOptions)],
       },
     },
     ...scoped(tseslint.configs.strictTypeChecked),
@@ -506,6 +638,8 @@ export function weltConfig({
     ...(query ? scoped(pluginQuery.configs["flat/recommended"]) : []),
     ...(i18n ? i18nConfigs(files) : []),
     { name: "welt/rules", files, rules: { ...typescriptRules, ...untypedStandardRules } },
+    // Depois de `welt/rules`, para o limite da rota fina valer sobre o `max-lines` geral.
+    ...architectureConfigs(framework, files, resolverOptions),
     // Fora do `tsconfig` não há informação de tipo: o TS entra com o `recommended` sem tipo, e o resto
     // do padrão vale igual. Nesses arquivos roda Node (scripts, configs de ferramenta).
     ...tseslint.configs.recommended.map((config) => ({ ...config, files: untypedFiles })),
