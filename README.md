@@ -10,7 +10,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.3.0&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.3.1&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -97,8 +97,9 @@ src/
   base. A página da feature fica em `features/<nome>/components/<nome>-page.tsx`, e a rota a importa
   direto: sem `index.ts` que só reexporta, que o bulletproof desaconselha (atrapalha o tree shaking
   do Vite).
-- **Pasta de `src/` fora da lista reprova** (`boundaries/no-unknown-files`): a estrutura é a mesma em
-  todos os apps.
+- **Pasta ou arquivo de `src/` fora da lista reprova** (`boundaries/no-unknown-files`): a estrutura
+  é a mesma em todos os apps. Na raiz de `src/` só ficam os três arquivos da tabela; `App.tsx` e
+  `router.tsx` moram em `app/`.
 - **Rota fina:** arquivo em `src/routes/` tem no máximo 60 linhas. Ele só declara o `createFileRoute`
   (parâmetros, busca com zod, loader, guarda) e o componente vem da feature.
 - **Teste fica ao lado do código** e importa da própria feature e de `testing/`.

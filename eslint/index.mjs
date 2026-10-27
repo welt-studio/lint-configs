@@ -318,16 +318,19 @@ function frameworkConfigs(framework, files) {
 // Arquitetura do app (decisão do PO, 2026-10-27): as regras de direção do bulletproof-react com as
 // rotas por arquivo do TanStack Router. Toda pasta de `src/` é uma camada, e cada camada só importa as
 // de baixo:
-//   arquivos da raiz de `src/` (`main.tsx`, `routeTree.gen.ts`) e `app/` → tudo;
+//   os arquivos da raiz de `src/` (só `main.tsx`, `routeTree.gen.ts` e `vite-env.d.ts`) e `app/` → tudo;
 //   `routes/` (rota fina: parâmetros, busca, loader, guarda) → features e base;
 //   `features/<nome>/` → a própria feature e a base, nunca outra feature;
 //   base (`components`, `hooks`, `lib`, `stores`, `types`, `utils`, `config`, `assets`, `testing`) → base.
-// Quem junta duas features é a rota ou o `app/`; o que duas features usam sobe para a base. Pasta de
-// `src/` fora dessa lista reprova (`no-unknown-files`). Os padrões casam pela direita, então valem
-// igual na raiz do projeto e num app de monorepo (`apps/admin/src/...`).
+// Quem junta duas features é a rota ou o `app/`; o que duas features usam sobe para a base. Pasta ou
+// arquivo de `src/` fora dessa lista reprova (`no-unknown-files`): `App.tsx` e `router.tsx` moram em
+// `app/`. Os padrões casam pela direita, então valem igual na raiz do projeto e num app de monorepo
+// (`apps/admin/src/...`).
 const SHARED_FOLDERS = "(components|hooks|lib|stores|types|utils|config|assets|testing)";
 const architectureSettings = {
-  "boundaries/files": [{ pattern: "**/src/*.{ts,tsx}", category: "entry" }],
+  "boundaries/files": [
+    { pattern: "**/src/{main.tsx,routeTree.gen.ts,vite-env.d.ts}", category: "entry" },
+  ],
   "boundaries/elements": [
     { type: "app", pattern: "src/app" },
     { type: "route", pattern: "src/routes" },
