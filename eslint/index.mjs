@@ -382,9 +382,10 @@ const ROUTE_MAX_LINES = 60;
 
 // O boundaries resolve os imports pelo `import/resolver` legado (do `eslint-module-utils`), não pelo
 // `resolver-next` do import-x: sem o resolver do TypeScript, import por alias (`@/features/...`) não
-// resolve e passa sem ser conferido. O resolver vai pelo caminho absoluto, que o `eslint-module-utils`
-// aceita no lugar do nome: pelo nome, ele procuraria o pacote a partir do projeto, que no pnpm não o
-// enxerga (é dependência deste pacote).
+// resolve e passa sem ser conferido. O resolver vai pelo caminho absoluto, uma das formas documentadas
+// do `import/resolver` (o README do `eslint-plugin-import`: "filesystem path to resolver"): ele é
+// dependência deste pacote, e o projeto não o declara. Pelo nome, ele só seria achado pelo hoist
+// interno do pnpm (`node_modules/.pnpm/node_modules`), que não é contrato.
 const TYPESCRIPT_RESOLVER = createRequire(import.meta.url).resolve(
   "eslint-import-resolver-typescript",
 );

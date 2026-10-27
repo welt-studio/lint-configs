@@ -1,0 +1,45 @@
+# Testes do próprio standards: os hooks em Python (`test_check_*.py`) e o pacote de ESLint
+# (`eslint/test/`). Rodam em todo push e PR na `main`, inclusive nos PRs do Renovate que sobem os
+# plugins: uma versão nova que mude o que o padrão reprova fica vermelha aqui antes de virar tag.
+#
+# Todo `uses:` fixado por SHA, com a versão no comentário ao lado; o Renovate atualiza os dois.
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# No PR, push novo cancela o run obsoleto; na `main`, cada commit tem grupo próprio e é conferido.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  hooks:
+    name: Hooks (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - run: uvx --python 3.14 pytest@9.1.1
+
+  eslint:
+    name: ESLint (pacote)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # O pnpm e o Node do `devEngines` do `eslint/package.json`, a única declaração de cada versão.
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+        with:
+          working-directory: eslint
+          cache: true
+          install: false
+      - run: pnpm install --frozen-lockfile
+        working-directory: eslint
+      - run: pnpm test
+        working-directory: eslint

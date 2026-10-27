@@ -118,8 +118,13 @@ Os padrões casam pela direita, então valem igual com o app na raiz do projeto 
 ### Publicar uma versão
 
 1. Mudar `eslint/`, subir `version` no `eslint/package.json`.
-2. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
-3. O Renovate abre em cada projeto o PR que troca a tag, com o lockfile; revisar e fazer o merge.
+2. `pnpm test` em `eslint/`: o fixture (`eslint/test/fixture/`, um monorepo mínimo) roda o padrão
+   como um projeto que instala o pacote e confere o que cada arquivo reprova: feature importando
+   feature, base importando feature, pasta fora da estrutura, rota grossa e ciclo que só passa por
+   alias. Regra nova da arquitetura ganha caso no fixture. O workflow `Test` roda o mesmo em todo
+   push e PR, inclusive nos do Renovate que sobem os plugins.
+3. Commit e tag `eslint-vX.Y.Z` no mesmo commit, push da tag.
+4. O Renovate abre em cada projeto o PR que troca a tag, com o lockfile; revisar e fazer o merge.
 
 ## Ruff: `ruff/base.toml` pelo hook `ruff-base`
 
