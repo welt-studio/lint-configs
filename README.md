@@ -10,7 +10,7 @@ Pacote em `eslint/`, instalado por tag do git (o repositório é público, entã
 precisa de token: máquina, CI e build Docker baixam como qualquer pacote):
 
 ```json
-"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.3.1&path:/eslint"
+"@welt-studio/eslint-config": "github:welt-studio/standards#eslint-v4.3.2&path:/eslint"
 ```
 
 O lockfile guarda o commit exato da tag. Atualizar um projeto é trocar a tag e rodar `pnpm install`;
@@ -78,7 +78,10 @@ e as rotas são as rotas por arquivo do TanStack Router, finas como no
 
 ```
 src/
-  main.tsx                 # monta o app
+  main.tsx                 # monta o app; importa o index.css
+  index.css                # o CSS global (tema, fontes): uma porta de entrada, que importa os outros
+  entry-server.tsx         # só com prerender SSR (`vite build --ssr`)
+  vite-env.d.ts
   app/                     # providers, instância do router, layout global, error boundary
   routes/                  # rotas por arquivo do TanStack Router (`createFileRoute`)
   routeTree.gen.ts         # gerado pelo @tanstack/router-plugin
@@ -88,7 +91,7 @@ src/
 
 | Camada | Importa |
 |---|---|
-| arquivos da raiz de `src/` (`main.tsx`, `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` | tudo |
+| arquivos de entrada da raiz de `src/` (`main.tsx`, `entry-server.tsx`, `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` | tudo |
 | `routes/` | rotas, features e a base |
 | `features/<nome>/` | a própria feature e a base, **nunca outra feature** |
 | a base | só a base |
@@ -98,8 +101,12 @@ src/
   direto: sem `index.ts` que só reexporta, que o bulletproof desaconselha (atrapalha o tree shaking
   do Vite).
 - **Pasta ou arquivo de `src/` fora da lista reprova** (`boundaries/no-unknown-files`): a estrutura
-  é a mesma em todos os apps. Na raiz de `src/` só ficam os três arquivos da tabela; `App.tsx` e
-  `router.tsx` moram em `app/`.
+  é a mesma em todos os apps. Na raiz de `src/` só ficam os arquivos de entrada da tabela e o
+  `index.css`; `App.tsx` e `router.tsx` moram em `app/`.
+- **CSS global:** um `src/index.css`, importado pelo `main.tsx`, como no bulletproof. Ele é parte da
+  entrada, não de uma camada; `assets/` é para arquivo estático (imagem, fonte). Tema e fontes em
+  arquivos separados entram pelo `index.css`. O ESLint não lê CSS, então esta regra fica escrita, sem
+  trava.
 - **Rota fina:** arquivo em `src/routes/` tem no máximo 60 linhas. Ele só declara o `createFileRoute`
   (parâmetros, busca com zod, loader, guarda) e o componente vem da feature.
 - **Teste fica ao lado do código** e importa da própria feature e de `testing/`.
@@ -402,6 +409,22 @@ com um `allowBuilds` de placeholders, que o hook então acusa.
   hooks:
     - id: pnpm-base
       args: [frontend] # só onde o pnpm-workspace.yaml não está na raiz
+```
+
+O `pnpm-lock.yaml` do pnpm 12 tem dois documentos YAML (o primeiro fixa o próprio pnpm, o segundo é
+o lock), e o `check-yaml` recusa arquivo assim. A flag `--allow-multiple-documents` entra **só no
+lockfile**, num hook próprio: valendo para todos os YAMLs, um `---` perdido num compose ou workflow,
+que só lê o primeiro documento, passaria calado.
+
+```yaml
+# .pre-commit-config.yaml (repo pre-commit-hooks)
+- id: check-yaml
+  exclude: (^|/)pnpm-lock\.yaml$
+- id: check-yaml
+  name: Check YAML syntax (pnpm-lock, multi-documento)
+  alias: check-yaml-pnpm-lock
+  args: [--allow-multiple-documents]
+  files: (^|/)pnpm-lock\.yaml$
 ```
 
 ## Testes (pytest): hook `pytest-base`

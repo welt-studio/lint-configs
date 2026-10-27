@@ -318,7 +318,8 @@ function frameworkConfigs(framework, files) {
 // Arquitetura do app (decisão do PO, 2026-10-27): as regras de direção do bulletproof-react com as
 // rotas por arquivo do TanStack Router. Toda pasta de `src/` é uma camada, e cada camada só importa as
 // de baixo:
-//   os arquivos da raiz de `src/` (só `main.tsx`, `routeTree.gen.ts` e `vite-env.d.ts`) e `app/` → tudo;
+//   os arquivos de entrada na raiz de `src/` (`main.tsx`, `entry-server.tsx` do prerender SSR,
+//   `routeTree.gen.ts`, `vite-env.d.ts`) e `app/` → tudo;
 //   `routes/` (rota fina: parâmetros, busca, loader, guarda) → features e base;
 //   `features/<nome>/` → a própria feature e a base, nunca outra feature;
 //   base (`components`, `hooks`, `lib`, `stores`, `types`, `utils`, `config`, `assets`, `testing`) → base.
@@ -329,7 +330,10 @@ function frameworkConfigs(framework, files) {
 const SHARED_FOLDERS = "(components|hooks|lib|stores|types|utils|config|assets|testing)";
 const architectureSettings = {
   "boundaries/files": [
-    { pattern: "**/src/{main.tsx,routeTree.gen.ts,vite-env.d.ts}", category: "entry" },
+    {
+      pattern: "**/src/{main.tsx,entry-server.tsx,routeTree.gen.ts,vite-env.d.ts}",
+      category: "entry",
+    },
   ],
   "boundaries/elements": [
     { type: "app", pattern: "src/app" },
