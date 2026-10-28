@@ -1,8 +1,16 @@
 # Pre-commit do próprio standards: o repo segue o padrão que publica, com os mesmos hooks dos
-# projetos. Instalar: uvx pre-commit@4.7.0 install --hook-type pre-commit --hook-type commit-msg
+# projetos. Instalar: uvx pre-commit@4.7.0 install
 #
 # Os hooks `*-base` rodam os scripts deste working tree (`hooks/`), não uma tag: o padrão em edição
 # é o que vale para o próprio repo. Nos projetos, os mesmos hooks vêm do `rev` de cada um.
+
+# Os três ganchos num `install` só. A lista substitui o padrão do pre-commit: sem o `commit-msg`
+# aqui, o conventional-pre-commit nunca é instalado.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+# Sem isto todo hook vale para todos os estágios instalados: os do commit rodariam de novo na
+# mensagem do commit e no push. Quem precisa de outro estágio declara `stages:` (testes, mensagem).
+default_stages: [pre-commit]
 
 repos:
   - repo: local
