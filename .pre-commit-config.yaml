@@ -95,7 +95,8 @@ repos:
         name: ESLint
         entry: pnpm run lint:files --fix
         language: system
-        types_or: [javascript, ts]
+        # O `identify` do pre-commit marca `.tsx` como `tsx` e `.jsx` como `jsx`, não `ts`/`javascript`.
+        types_or: [javascript, jsx, ts, tsx]
         exclude: ^eslint/test/fixture/
       - id: type-check
         name: TypeScript Check
@@ -108,7 +109,7 @@ repos:
         name: Knip
         entry: pnpm run knip
         language: system
-        files: (\.(js|mjs|cjs|ts)|package\.json|pnpm-workspace\.yaml|knip\.json)$
+        files: (\.(js|mjs|cjs|jsx|ts|tsx)|package\.json|pnpm-workspace\.yaml|knip\.json)$
         pass_filenames: false
 
   # Duplicação - jscpd no repo inteiro, com a cópia do padrão (`.jscpd.json`).
@@ -118,7 +119,7 @@ repos:
         name: Duplicação (jscpd)
         entry: pnpm run duplication
         language: system
-        types_or: [python, ts, javascript]
+        types_or: [python, javascript, jsx, ts, tsx]
         pass_filenames: false
 
   # Testes - no push (não travam o commit).

@@ -46,8 +46,10 @@ repos:
   # Testes no push, não no commit (`stages: [pre-push]`): pytest e vitest com a cobertura.
   - repo: local
     hooks:
+      # `--directory`, não `--project`: o pytest acha o `[tool.pytest]` pela pasta em que roda. Da
+      # raiz, com `--project`, ele roda sem a config (sem strict, sem rede bloqueada, sem cobertura).
       - id: pytest
-        entry: uv run --project backend pytest -q
+        entry: uv run --directory backend pytest -q
         language: system
         pass_filenames: false
         stages: [pre-push]
