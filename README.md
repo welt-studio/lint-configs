@@ -566,7 +566,15 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 Fica com o projeto o que é fato dele: `testpaths`, `pythonpath`, markers, `asyncio_mode`,
 `DJANGO_SETTINGS_MODULE`, o número de workers do xdist. Com o `--cov` no `addopts`, a CI e o
 `pre-push` rodam só `uv run pytest` (o `--cov-report=term-missing:skip-covered` no `addopts` mostra
-as linhas que faltam). O hook reprova também `pyproject.toml` que não é TOML válido, com o erro do
+as linhas que faltam).
+
+Rodar um arquivo ou um teste só: `uv run pytest --no-cov <caminho>`. Com o `--cov` no `addopts`, a
+cobertura é medida em toda execução, e um teste isolado cobre pouco do código: sem o `--no-cov`, o
+pytest termina com "Required test coverage of 80% not reached" e sai com falha, mesmo com todos os
+testes passando. O piso vale para a suíte inteira (CI e `pre-push`). O mesmo no vitest: `vitest run
+<arquivo>`, sem `--coverage`.
+
+O hook reprova também `pyproject.toml` que não é TOML válido, com o erro do
 parser. Os testes do hook ficam em `tests/test_check_pytest.py` (ver "Desenvolver este repo").
 
 ## Testes (vitest): `@welt-studio/vitest-config`
