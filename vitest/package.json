@@ -1,6 +1,6 @@
 {
   "name": "@welt-studio/vitest-config",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Configuração Vitest padrão da Welt Studio",
   "type": "module",
   "license": "UNLICENSED",
@@ -26,14 +26,17 @@
     "server.d.ts",
     "setup.mjs"
   ],
+  "scripts": {
+    "test": "node --test test/"
+  },
   "dependencies": {
-    "@vitest/coverage-v8": "5.0.5",
     "jsdom": "30.1.3"
   },
   "peerDependencies": {
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "msw": "^3.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -37,8 +37,14 @@ testpaths = ["tests"]
 # nome; os testes os importam do mesmo jeito.
 pythonpath = ["hooks"]
 timeout = 60
+# Cobertura em toda rodada (o `fail_under` só vale com `--cov`), com as linhas que faltam no relatório.
 # Os scripts não usam rede: nenhum host liberado além do loopback.
-addopts = ["--disable-socket", "--allow-hosts=127.0.0.1,localhost"]
+addopts = [
+    "--cov",
+    "--cov-report=term-missing:skip-covered",
+    "--disable-socket",
+    "--allow-hosts=127.0.0.1,localhost",
+]
 
 [tool.coverage.run]
 branch = true

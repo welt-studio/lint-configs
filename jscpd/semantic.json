@@ -1,13 +1,14 @@
 {
   "format": ["python", "typescript", "tsx", "javascript", "jsx", "rust"],
   "ignore": [
+    "**/*.gen.ts",
     "**/migrations/**",
     "**/alembic/versions/**",
-    "**/*.gen.ts",
     "**/vendor/**",
     "**/*.min.js",
     "**/*.min.mjs",
     "**/*.min.cjs",
+    "**/*.min.css",
     "**/tests/**",
     "**/__tests__/**",
     "**/test/**",

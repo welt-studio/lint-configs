@@ -1,6 +1,10 @@
 # Padrão de exclusão do Prettier da Welt Studio: só o que é versionado e não é nosso para formatar.
 # O que o git ignora fica fora porque o projeto inteiro se formata pelo hook do pre-commit, que só
 # recebe arquivo versionado (`pre-commit run prettier --all-files`), nunca por `prettier .`.
+#
+# Saída de gerador e código de terceiros seguem a lista comum do padrão (`eslint/ignores.json` no
+# standards), a mesma do ESLint, do jscpd, do Ruff e do Pyright; um teste do standards reprova se
+# esta lista divergir dela. Os lockfiles e os templates são só do Prettier.
 
 # Lockfiles: gerados pelo gerenciador de pacotes, no formato dele. O Prettier reformataria a cada
 # commit e o próximo `install` desfaria, em toda linha do arquivo.
@@ -8,9 +12,12 @@ pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
-# Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI): o gerador reescreve
-# no estilo dele a cada rodada, e formatar só cria diff que a rodada seguinte desfaz.
+# Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI, migrations do Alembic e
+# do Django): o gerador reescreve no estilo dele a cada rodada, e formatar só cria diff que a rodada
+# seguinte desfaz.
 **/*.gen.ts
+**/migrations/**
+**/alembic/versions/**
 
 # Código de terceiros, que entra no repo como está.
 **/vendor/**

@@ -1,0 +1,4 @@
+# Caso do teste: o que o git ignora fica fora do lint (`gitIgnored` do pacote). O teste cria
+# `apps/web/src/local-[id]/` depois do `git add`; fora da estrutura de `src/`, ele reprovaria o
+# `no-unknown-files` se fosse lintado. O `[id]` confere que o nome vira literal, não glob.
+apps/web/src/local-*/

@@ -60,6 +60,13 @@ def test_copy_goes_to_the_project_root_without_folder(
     assert (tmp_path / ".prettierignore").is_file()
 
 
+def test_missing_folder_is_reported(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    folder = tmp_path / "frontend"
+    assert sync_base.main(["prettier", str(folder)]) == 1
+    assert f"a pasta {folder} (args do hook) não existe" in capsys.readouterr().err
+    assert not folder.exists()
+
+
 @pytest.mark.parametrize("args", [[], ["eslint"], ["ruff", "a", "b"]])
 def test_usage_error(args: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     assert sync_base.main(args) == 2

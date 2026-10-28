@@ -25,7 +25,7 @@ COMPLETE = {
                 "strict": True,
                 "filterwarnings": ["error", "ignore::DeprecationWarning:thirdparty"],
                 "python_files": ["test_*.py"],
-                "addopts": "-n 4 --disable-socket --allow-hosts=127.0.0.1,localhost",
+                "addopts": "-n 4 --cov --disable-socket --allow-hosts=127.0.0.1,localhost",
                 "timeout": check_pytest.TIMEOUT_SECONDS,
             }
         },
@@ -52,8 +52,20 @@ def test_complete_config_passes() -> None:
 
 def test_addopts_as_list_passes() -> None:
     config = copy.deepcopy(COMPLETE)
-    config["tool"]["pytest"]["ini_options"]["addopts"] = ["--disable-socket", "--allow-hosts=::1"]
+    config["tool"]["pytest"]["ini_options"]["addopts"] = [
+        "--cov=app",
+        "--disable-socket",
+        "--allow-hosts=::1",
+    ]
     assert check_pytest.problems(config) == []
+
+
+@pytest.mark.parametrize("addopts", ["--disable-socket --allow-hosts=::1", "--cov-report=term"])
+def test_coverage_flag_is_required(addopts: str) -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["addopts"] = addopts
+    found = check_pytest.problems(config)
+    assert "[tool.pytest.ini_options] addopts com --cov (o fail_under só vale com ele)" in found
 
 
 @pytest.mark.parametrize(
@@ -84,7 +96,7 @@ def test_warnings_not_starting_with_error_fail() -> None:
 
 def test_network_flags_are_required() -> None:
     config = copy.deepcopy(COMPLETE)
-    config["tool"]["pytest"]["ini_options"]["addopts"] = "-n 4"
+    config["tool"]["pytest"]["ini_options"]["addopts"] = "-n 4 --cov"
     found = check_pytest.problems(config)
     assert len(found) == 2
     assert "--disable-socket" in found[0]
@@ -122,3 +134,9 @@ def test_main_reads_the_package_folder(tmp_path: Path, capsys: pytest.CaptureFix
 
 def test_main_without_pyproject_fails(tmp_path: Path) -> None:
     assert check_pytest.main([str(tmp_path)]) == 1
+
+
+def test_main_reports_invalid_toml(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.pytest\n", encoding="utf-8")
+    assert check_pytest.main([str(tmp_path)]) == 1
+    assert "não é TOML válido" in capsys.readouterr().err

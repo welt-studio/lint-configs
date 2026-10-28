@@ -15,11 +15,22 @@ line-length = 100
 # que conhece todas as regras do `select`. Regra nova que exija um Ruff mais novo sobe o piso. Sem
 # `preview`: no Ruff, uma versão patch pode mudar o que está em preview.
 required-version = ">=0.17.1"
-# Fora do lint e do format, como no Prettier e no jscpd do padrão: migrations geradas pelo
-# Alembic/Django, que não são escritas à mão, e código de terceiros (transcrito ou copiado) em
-# `vendor/`, que segue o original. `force-exclude` faz valer também para arquivo passado pelo nome
-# (é assim que o hook e a CI rodam).
-extend-exclude = ["**/alembic/versions/**", "**/migrations/**", "**/vendor/**"]
+# Fora do lint e do format, como no Prettier e no jscpd do padrão: saída de gerador (migrations do
+# Alembic/Django, que não são escritas à mão) e código de terceiros (transcrito ou copiado em
+# `vendor/`, ou minificado), que segue o original. É a lista comum do padrão (`eslint/ignores.json`
+# no standards), igual em todas as ferramentas, e um teste do standards reprova se esta divergir;
+# os padrões de JS/CSS não casam com nada aqui. `force-exclude` faz valer também para arquivo
+# passado pelo nome (é assim que o hook e a CI rodam).
+extend-exclude = [
+    "**/*.gen.ts",
+    "**/migrations/**",
+    "**/alembic/versions/**",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.mjs",
+    "**/*.min.cjs",
+    "**/*.min.css",
+]
 force-exclude = true
 
 [lint]
@@ -39,7 +50,7 @@ select = [
     "RET",     # flake8-return
     "SIM",     # flake8-simplify
     "ARG",     # flake8-unused-arguments
-    "PLC",     # pylint convention
+    "PLC",     # pylint convention (inclui PLC0415: import dentro de função)
     "PLE",     # pylint errors
     "PLR",     # pylint refactor (limites em [lint.pylint])
     "PLW",     # pylint warnings
@@ -70,7 +81,6 @@ select = [
     "TID251",  # APIs proibidas ([lint.flake8-tidy-imports.banned-api])
     "PGH003",  # `# type: ignore` sem o código da regra (o Pyright cobra o que não ignora nada)
     "PGH004",  # noqa sem código
-    "PLC0415", # import dentro de função
     "T10",     # `breakpoint()`/`pdb` esquecido
     "NPY",     # API depreciada do NumPy (só dispara em código NumPy)
     "PT",      # estilo do pytest (`raises` com `match`, assert simples, sem assert do unittest)
@@ -79,10 +89,11 @@ select = [
     "TID252",  # import relativo que sobe pasta: import absoluto
     "EM",      # mensagem da exceção numa variável antes do `raise` (o traceback não a repete)
 ]
+# Senha escrita no código (S105/S106) e chamada em default de argumento (B008) ficam ligadas
+# (decisão do PO, 2026-10-28): desligadas para todos, escondiam segredo de verdade por causa de um
+# falso positivo de alguns. O `Depends(...)` do FastAPI e afins são liberados um a um em
+# `[lint.flake8-bugbear]`.
 ignore = [
-    "S105", # hardcoded-password-string: falso positivo com o token type "bearer" do OAuth2
-    "S106", # hardcoded-password-func-arg: idem
-    "B008", # chamada em default de argumento: é como o FastAPI declara `Depends(...)`
     # Mover import "só de tipo" para `TYPE_CHECKING`: no Python 3.14 a anotação já é avaliada só
     # quando pedida (PEP 649), então quase não há ganho; e Pydantic, SQLAlchemy (`Mapped[...]`) e
     # FastAPI (toda função num `Depends`) leem anotações em runtime — mover quebra o app. O
@@ -102,11 +113,13 @@ ignore = [
 max-complexity = 12
 
 [lint.pylint]
-# Os padrões do Ruff (vindos do pylint). `max-args` 5 é o mesmo `max-params` do ESLint.
+# `max-args` 5 e `max-statements` 30 são os mesmos `max-params` e `max-statements` do ESLint (decisão
+# do PO, 2026-10-28): o Ruff não tem limite de linhas por função, então o de instruções é a trava de
+# tamanho de função no Python. `max-branches` e `max-returns` são os padrões do Ruff.
 max-args = 5
 max-branches = 12
 max-returns = 6
-max-statements = 50
+max-statements = 30
 
 [lint.flake8-type-checking]
 # O Pydantic e as rotas do FastAPI leem as anotações em runtime: com isto, um tipo de campo ou de
@@ -120,6 +133,22 @@ runtime-evaluated-decorators = [
     "fastapi.APIRouter.delete",
 ]
 
+[lint.flake8-bugbear]
+# É assim que o FastAPI declara dependência e parâmetro de rota (`db: Session = Depends(get_db)`): a
+# chamada no default é lida pelo FastAPI a cada requisição, não compartilhada entre chamadas. Fora
+# destas, chamada em default de argumento (B008) reprova.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Security",
+]
+
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python >=3.14 já adia a avaliação das anotações (PEP 649)."
 # Relógio em teste tem uma lib só, a do padrão de testes (`pytest-base`).
@@ -131,10 +160,11 @@ runtime-evaluated-decorators = [
 classmethod-decorators = ["sqlalchemy.orm.declared_attr"]
 
 [lint.per-file-ignores]
-# Testes: assert, número mágico, fixture injetada e acesso a privado são o normal; tamanho não é
-# defeito (como os testes no ESLint). O resto do padrão vale.
-"**/tests/**/*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
-"**/test_*.py" = ["S101", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
+# Testes: assert, número mágico, senha de fixture (S105/S106, decisão do PO em 2026-10-28), fixture
+# injetada e acesso a privado são o normal; tamanho não é defeito (como os testes no ESLint). O resto
+# do padrão vale. Um padrão só para as duas formas (pasta `tests/` e arquivo `test_*.py`), com a
+# alternativa `{...}` do glob: uma lista de exceções.
+"**/{tests/**/*,test_*}.py" = ["S101", "S105", "S106", "PLR2004", "SLF001", "ANN", "ARG001", "ARG002", "PLR0913", "PLR0915", "PLR0917", "C901"]
 
 [format]
 quote-style = "double"

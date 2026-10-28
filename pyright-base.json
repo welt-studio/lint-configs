@@ -17,8 +17,20 @@
   // `# type: ignore` que não ignora nada reprova (como o RUF100 do Ruff). O código da regra entre
   // colchetes é cobrado pelo PGH003 do padrão Ruff.
   "reportUnnecessaryTypeIgnoreComment": "error",
-  // Código de terceiros (transcrito ou copiado) em `vendor/` segue o original: o Pyright não acusa
-  // nada dentro dele, como o Ruff, o Prettier e o jscpd do padrão. Quem o usa continua conferido
-  // contra os tipos dele. O projeto não declara `ignore`: declarar substituiria este.
-  "ignore": ["**/vendor/**"]
+  // Saída de gerador (migrations do Alembic/Django) e código de terceiros (transcrito ou copiado em
+  // `vendor/`, ou minificado) seguem o gerador ou o original: o Pyright não acusa nada dentro deles,
+  // como o Ruff, o Prettier e o jscpd do padrão. Quem os usa continua conferido contra os tipos
+  // deles. É a lista comum do padrão (`eslint/ignores.json` no standards), igual em todas as
+  // ferramentas, e um teste do standards reprova se esta divergir; os padrões de JS/CSS não casam
+  // com nada aqui. O projeto não declara `ignore`: declarar substituiria este.
+  "ignore": [
+    "**/*.gen.ts",
+    "**/migrations/**",
+    "**/alembic/versions/**",
+    "**/vendor/**",
+    "**/*.min.js",
+    "**/*.min.mjs",
+    "**/*.min.cjs",
+    "**/*.min.css"
+  ]
 }

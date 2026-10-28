@@ -1,6 +1,6 @@
 {
   "name": "@welt-studio/eslint-config",
-  "version": "4.3.2",
+  "version": "4.4.0",
   "description": "Configuração ESLint padrão da Welt Studio para frontends em TypeScript",
   "type": "module",
   "license": "UNLICENSED",
@@ -20,7 +20,8 @@
     "index.d.ts",
     "architecture.mjs",
     "files.mjs",
-    "i18n.mjs"
+    "i18n.mjs",
+    "ignores.json"
   ],
   "scripts": {
     "test": "node --test test/"

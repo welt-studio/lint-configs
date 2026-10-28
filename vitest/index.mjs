@@ -4,13 +4,17 @@
  * O padrão é um só para todos os projetos. O projeto só declara o que é dele (os aliases de import
  * e, se tiver, o setup próprio), por `mergeConfig`:
  *
- *   import { mergeConfig } from "vitest/config";
  *   import { weltVitestConfig } from "@welt-studio/vitest-config";
+ *   import { mergeConfig } from "vitest/config";
+ *
  *   import viteConfig from "./vite.config";
+ *
  *   export default mergeConfig(weltVitestConfig(), { resolve: viteConfig.resolve });
  *
- * O jsdom e a cobertura vêm deste pacote. O que o teste importa (Testing Library, MSW) o projeto
- * declara, porque o pnpm só deixa importar o que está no `package.json` (e o Knip cobra o mesmo); os
+ * O jsdom vem deste pacote. O `vitest` e o `@vitest/coverage-v8` o projeto declara, na mesma versão
+ * (o Vitest avisa "Running mixed versions is not supported" quando diferem, e o `coverage-v8` exige a
+ * versão exata do `vitest` como peer), assim como o que o teste importa (Testing Library, MSW),
+ * porque o pnpm só deixa importar o que está no `package.json` (e o Knip cobra o mesmo); os
  * `peerDependencies` dizem as versões aceitas.
  */
 import { fileURLToPath } from "node:url";
@@ -40,6 +44,9 @@ export function weltVitestConfig({ setupFiles = [] } = {}) {
       setupFiles: [setupFile, ...setupFiles],
       // Ordem aleatória: teste que depende de outro aparece.
       sequence: { shuffle: true },
+      // Todo `vi.spyOn` volta ao original depois de cada teste: um mock esquecido não vaza para o
+      // teste seguinte (que, na ordem aleatória, muda a cada rodada).
+      restoreMocks: true,
       coverage: {
         provider: "v8",
         // Todo o código do app conta, inclusive o que nenhum teste importa.

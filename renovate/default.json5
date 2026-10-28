@@ -235,11 +235,26 @@
       versioningTemplate: "regex:^vitest-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
-      description: "Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>`.",
+      // A mesma versão aparece no workflow, no comentário de instalação do `.pre-commit-config.yaml`
+      // e no README: todas sobem juntas, no mesmo PR, e nenhuma fica para trás.
+      description: "Ferramentas rodadas fora do lock do projeto: `uvx <nome>@<versão>` nos workflows, no pre-commit e no README.",
       customType: "regex",
-      managerFilePatterns: ["/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"],
+      managerFilePatterns: [
+        "/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/",
+        "/(^|/)\\.pre-commit-config\\.yaml$/",
+        "/(^|/)README\\.md$/",
+      ],
       matchStrings: ["uvx (?<depName>[A-Za-z0-9_.-]+)@(?<currentValue>\\d+(?:\\.\\d+)+)"],
       datasourceTemplate: "pypi",
+    },
+    {
+      description: "Ferramentas do npm rodadas fora do lock do projeto: `pnpm dlx --package <nome>@<versão>` no README.",
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)README\\.md$/"],
+      matchStrings: [
+        "pnpm dlx --package (?<depName>@?[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)@(?<currentValue>\\d+(?:\\.\\d+)+)",
+      ],
+      datasourceTemplate: "npm",
     },
   ],
 }

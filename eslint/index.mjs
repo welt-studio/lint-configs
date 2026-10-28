@@ -14,6 +14,7 @@
  *   });
  */
 import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 
 import js from "@eslint/js";
 import commentConfigs from "@eslint-community/eslint-plugin-eslint-comments/configs";
@@ -34,6 +35,7 @@ import tseslint from "typescript-eslint";
 import { architectureConfigs } from "./architecture.mjs";
 import { testFiles, toolConfigFiles, unitTestFiles } from "./files.mjs";
 import { i18nConfigs } from "./i18n.mjs";
+import versionedIgnores from "./ignores.json" with { type: "json" };
 
 // Tamanho e complexidade. Valores medidos nos projetos: abaixo deles a regra vira ruído.
 const complexityRules = {
@@ -194,20 +196,21 @@ const disableDirectiveRules = {
 // atravessa `/`. Sem ele, `*.min.js` só pega minificado na raiz e `dist/**` só o `dist` de primeiro
 // nível — foi assim que um `eslint --fix` reescreveu um UMD minificado de terceiro no pg-studio.
 const commonIgnores = [
+  // O que está no git e não é nosso para arrumar: saída de gerador (`routeTree.gen.ts`, migrations),
+  // que o gerador reescreve no estilo dele, e código de terceiros, que entra como está. A lista é uma
+  // só para todas as ferramentas do padrão (`ignores.json`); as cópias que o Prettier, o jscpd, o Ruff
+  // e o Pyright leem em arquivo próprio são conferidas contra ela pelo `tests/test_ignores.py`.
+  ...versionedIgnores.generated,
+  ...versionedIgnores.thirdParty,
+  // Saída de build e ambiente, que o git já ignora: ficam aqui para o lint fora de um repositório git,
+  // em que o `gitIgnored` abaixo não acha nada.
   "**/node_modules/**",
   "**/dist/**",
   "**/build/**",
   "**/coverage/**",
-  "**/*.min.js",
-  "**/*.min.mjs",
-  // Código de terceiros: entra no repo como está e não é nosso para arrumar.
-  "**/vendor/**",
   ".env*",
   "**/.next/**",
   "**/out/**",
-  // Saída de gerador (`routeTree.gen.ts` do TanStack Router, clientes OpenAPI): o gerador a reescreve
-  // no estilo dele a cada rodada. O mesmo padrão do `.prettierignore`.
-  "**/*.gen.ts",
 ];
 
 /**
@@ -248,6 +251,10 @@ function gitIgnored(dir) {
  * `tsconfig.json` na raiz, o resolver não acha o do app e todo import por alias fica sem resolver.
  * Glob também não: varre o `node_modules`, e o tsconfig de pacote de terceiro derruba o resolver. O
  * git só lista o que é do projeto. Fora de um repositório git, fica a pasta.
+ *
+ * Por isso um `tsconfig.json` que ainda não foi versionado (criado e sem `git add`) fica invisível:
+ * os aliases dele não resolvem, e o `no-cycle` e a arquitetura não veem os imports por alias até o
+ * `git add`.
  */
 function typescriptProjects(dir) {
   let output;
@@ -263,7 +270,7 @@ function typescriptProjects(dir) {
   const projects = output
     .split("\0")
     .filter(Boolean)
-    .map((path) => `${dir}/${path}`);
+    .map((file) => join(dir, file));
   return projects.length > 0 ? projects : [dir];
 }
 
@@ -357,7 +364,9 @@ function warningsAsErrors(config) {
 
 /**
  * @param {object} options
- * @param {string} options.tsconfigRootDir pasta do `tsconfig.json` (em geral `import.meta.dirname`)
+ * @param {string} options.tsconfigRootDir pasta do `tsconfig.json` (em geral `import.meta.dirname`);
+ *   os aliases resolvem pelos `tsconfig.json` versionados no git a partir dela, então um ainda sem
+ *   `git add` fica invisível até ser versionado
  * @param {string[]} [options.files] arquivos lintados com tipo (regras de TS e React)
  * @param {string[]} [options.untypedFiles] arquivos fora de qualquer `tsconfig` (scripts, configs de
  *   ferramenta, regras próprias em `.mjs`): recebem o padrão sem as regras que exigem tipo, com os

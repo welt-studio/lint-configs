@@ -1,6 +1,6 @@
 # O próprio standards no padrão que ele publica: os hooks do `.pre-commit-config.yaml` no repo
 # inteiro (as cópias, Ruff, Pyright, Prettier, ESLint, tsc, Knip, jscpd, gitleaks e os básicos) e os
-# testes (os dos hooks em Python, com o piso de cobertura, e o do pacote de ESLint). Roda em todo push
+# testes (os dos hooks em Python, com o piso de cobertura, e os dos pacotes). Roda em todo push
 # e PR na `main`, inclusive nos PRs do Renovate que sobem os plugins: uma versão nova que mude o que o
 # padrão reprova fica vermelha aqui antes de virar tag.
 #
@@ -33,7 +33,8 @@ jobs:
         with:
           version-file: pyproject.toml
           activate-environment: true
-      # O pnpm e o Node do `devEngines` do `package.json` da raiz, a única declaração de cada versão.
+      # O pnpm do `packageManager` e o Node do `devEngines.runtime` do `package.json` da raiz (o pnpm o
+      # baixa, `onFail: "download"`): a única declaração de cada versão.
       - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           cache: true
@@ -42,9 +43,10 @@ jobs:
       - run: uv sync --locked
       - name: Hooks do padrão
         run: uvx pre-commit@4.7.0 run --all-files --show-diff-on-failure
+      # A cobertura e o relatório vêm do `addopts` do `pyproject.toml`.
       - name: Testes dos hooks (pytest, com cobertura)
         if: ${{ !cancelled() }}
-        run: uv run pytest --cov --cov-report=term-missing:skip-covered
-      - name: Teste do pacote de ESLint
+        run: uv run pytest
+      - name: Testes dos pacotes
         if: ${{ !cancelled() }}
         run: pnpm test

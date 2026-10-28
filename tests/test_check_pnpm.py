@@ -91,3 +91,10 @@ def test_main_passes_on_complete_folder(tmp_path: Path) -> None:
 
 def test_main_without_files_fails(tmp_path: Path) -> None:
     assert check_pnpm.main([str(tmp_path)]) == 1
+
+
+def test_main_reports_invalid_json(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    (tmp_path / "pnpm-workspace.yaml").write_text(WORKSPACE, encoding="utf-8")
+    (tmp_path / "package.json").write_text('{"devEngines": }', encoding="utf-8")
+    assert check_pnpm.main([str(tmp_path)]) == 1
+    assert "não é JSON válido" in capsys.readouterr().err

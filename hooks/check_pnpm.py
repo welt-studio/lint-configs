@@ -71,9 +71,12 @@ def main(args: list[str]) -> int:
     if missing:
         sys.stderr.write(f"pnpm-base: não existe: {', '.join(missing)}\n")
         return 1
-    found = workspace_problems(workspace.read_text(encoding="utf-8")) + package_problems(
-        table(json.loads(package.read_text(encoding="utf-8")))
-    )
+    try:
+        manifest = table(json.loads(package.read_text(encoding="utf-8")))
+    except json.JSONDecodeError as error:
+        sys.stderr.write(f"pnpm-base: {package} não é JSON válido: {error}\n")
+        return 1
+    found = workspace_problems(workspace.read_text(encoding="utf-8")) + package_problems(manifest)
     if not found:
         return 0
     sys.stderr.write("pnpm-base: fora do padrão de scripts de instalação da Welt Studio:\n")

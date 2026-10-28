@@ -10,5 +10,8 @@
   },
   "files": [
     "base.json"
-  ]
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  }
 }

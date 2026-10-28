@@ -66,6 +66,12 @@ def pytest_problems(options: Table) -> list[str]:
         problems.append("[tool.pytest.ini_options] addopts com --disable-socket (teste sem rede)")
     if not any(token.startswith("--allow-hosts") for token in tokens):
         problems.append("[tool.pytest.ini_options] addopts com --allow-hosts=<hosts do projeto>")
+    # O `fail_under` do `[tool.coverage.report]` só vale quando a cobertura roda: sem `--cov` no
+    # `addopts`, um `pytest` sem a flag passa abaixo do piso sem ninguém ver.
+    if not any(flag == "--cov" or flag.startswith("--cov=") for flag in tokens):
+        problems.append(
+            "[tool.pytest.ini_options] addopts com --cov (o fail_under só vale com ele)"
+        )
     if options.get("timeout") != TIMEOUT_SECONDS:
         problems.append(f"[tool.pytest.ini_options] timeout = {TIMEOUT_SECONDS}")
     return problems
@@ -111,7 +117,12 @@ def main(args: list[str]) -> int:
     if not path.is_file():
         sys.stderr.write(f"pytest-base: {path} não existe\n")
         return 1
-    found = problems(tomllib.loads(path.read_text(encoding="utf-8")))
+    try:
+        config = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as error:
+        sys.stderr.write(f"pytest-base: {path} não é TOML válido: {error}\n")
+        return 1
+    found = problems(config)
     if not found:
         return 0
     sys.stderr.write(f"pytest-base: {path} fora do padrão de testes da Welt Studio:\n")

@@ -124,43 +124,59 @@ repos:
   # Testes - no push (não travam o commit).
   - repo: local
     hooks:
+      # Com a cobertura e o piso: o `--cov` está no `addopts` do `pyproject.toml`. Os testes também
+      # conferem texto (as listas de ignores em `tests/test_ignores.py`, as versões do `uvx` em
+      # `tests/test_tool_versions.py`), então o hook roda também quando só ele muda.
       - id: pytest
         name: Pytest (hooks)
         entry: uv run pytest -q
         language: system
-        types: [python]
+        files: (\.(py|md|ya?ml)|pyproject\.toml|uv\.lock|ignores\.json|/ignore|/base\.(json|toml)|semantic\.json)$
         pass_filenames: false
         stages: [pre-push]
       - id: package-tests
-        name: Testes dos pacotes (ESLint)
+        name: Testes dos pacotes (ESLint, Prettier, tsconfig, Vitest)
         entry: pnpm test
         language: system
-        files: ^eslint/
+        files: ^(eslint|prettier|tsconfig|vitest)/|^(package\.json|pnpm-lock\.yaml)$
         pass_filenames: false
         stages: [pre-push]
 
+  # Repos de terceiros fixados por SHA, com a versão no comentário (a forma do
+  # `pre-commit autoupdate --freeze`): uma tag pode ser movida para outro código, um SHA não. O
+  # gerenciador `pre-commit` do Renovate atualiza o SHA e o comentário juntos.
+
   # Security - Gitleaks (secret detection)
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.1
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # frozen: v8.30.1
     hooks:
       - id: gitleaks
         name: Gitleaks (Detect secrets)
 
   # Git - Commits convencionais
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v4.4.0
+    rev: 91ab4bf57e58b32adf1a122681f6ebe164d081c8 # frozen: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
 
   # Git - Verificações básicas
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
         name: Remove trailing whitespace
       - id: end-of-file-fixer
         name: Fix end of files
+      # Fim de linha `lf` em tudo (como o `[format]` do Ruff e o Prettier): um CRLF vindo do Windows
+      # vira diff em toda linha do arquivo.
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: [--fix=lf]
+      # Dois arquivos que só diferem na caixa (`Button.tsx` e `button.tsx`) quebram o checkout no
+      # macOS e no Windows.
+      - id: check-case-conflict
+        name: Check for case conflicts
       # O lockfile do pnpm 12 tem dois documentos (o pnpm fixado e o lock). A flag
       # `--allow-multiple-documents` fica só nele: valendo para todos os YAMLs, um `---` perdido num
       # compose ou workflow (que só lê o primeiro documento) passaria calado.

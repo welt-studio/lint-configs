@@ -62,10 +62,15 @@ def main(args: list[str]) -> int:
         sys.stderr.write(f"uso: sync_base.py <{'|'.join(BASES)}> [pasta]\n")
         return 2
     name = args[0]
+    folder = Path(*args[1:])
+    # A pasta vem do `args` do hook no projeto: errada (digitada errado, ou movida), o hook diz qual
+    # é em vez de cair num traceback do `write_text`.
+    if not folder.is_dir():
+        sys.stderr.write(f"{name}-base: a pasta {folder} (args do hook) não existe\n")
+        return 1
     # Todas as cópias são conferidas, mesmo depois da primeira que divergir.
     written = [
-        sync(name, source, Path(*args[1:], target), comment)
-        for source, target, comment in BASES[name]
+        sync(name, source, folder / target, comment) for source, target, comment in BASES[name]
     ]
     return 1 if any(written) else 0
 

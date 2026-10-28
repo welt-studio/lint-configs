@@ -1,0 +1,4 @@
+{
+  "generated": ["**/*.gen.ts", "**/migrations/**", "**/alembic/versions/**"],
+  "thirdParty": ["**/vendor/**", "**/*.min.js", "**/*.min.mjs", "**/*.min.cjs", "**/*.min.css"]
+}

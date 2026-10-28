@@ -1,7 +1,12 @@
 import type { Linter } from "eslint";
 
 export interface WeltConfigOptions {
-  /** Pasta do `tsconfig.json` (em geral `import.meta.dirname`). */
+  /**
+   * Pasta do `tsconfig.json` (em geral `import.meta.dirname`). Os aliases dos imports resolvem pelos
+   * `tsconfig.json` versionados no git a partir dela: um `tsconfig.json` ainda sem `git add` fica
+   * invisível, e os imports por alias dele passam sem `no-cycle` e sem a arquitetura até ser
+   * versionado.
+   */
   tsconfigRootDir: string;
   /** Arquivos lintados com tipo (regras de TS e React). Padrão: `["**\/*.{ts,tsx}"]`. */
   files?: string[];
