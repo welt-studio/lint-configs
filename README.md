@@ -43,7 +43,9 @@ default_install_hook_types: [pre-commit, commit-msg, pre-push]
 default_stages: [pre-commit]
 
 repos:
-  # Testes no push, não no commit (`stages: [pre-push]`): pytest e vitest com a cobertura.
+  # Testes no push, não no commit (`stages: [pre-push]`): pytest e vitest com a cobertura e o piso.
+  # Teste vermelho ou cobertura abaixo do piso barram o push (decisão do PO). Cada suíte filtra pela
+  # pasta dela (`files:`): push que só toca o backend não roda o vitest, e vice-versa; a CI roda tudo.
   - repo: local
     hooks:
       # `--directory`, não `--project`: o pytest acha o `[tool.pytest]` pela pasta em que roda. Da
@@ -51,6 +53,13 @@ repos:
       - id: pytest
         entry: uv run --directory backend pytest -q
         language: system
+        files: ^backend/
+        pass_filenames: false
+        stages: [pre-push]
+      - id: vitest
+        entry: pnpm --filter frontend run test:coverage
+        language: system
+        files: ^frontend/
         pass_filenames: false
         stages: [pre-push]
   # Repos de terceiros fixados por SHA, com a versão no comentário (`pre-commit autoupdate --freeze`):
