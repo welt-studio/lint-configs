@@ -40,6 +40,11 @@ jobs:
           cache: true
           install: false
       - run: pnpm install --frozen-lockfile
+      # Falha conhecida em dependência do padrão (inclusive as do lint, que todo projeto instala)
+      # reprova aqui, antes da tag: foi assim que um `handlebars` crítico do `eslint-plugin-boundaries`
+      # chegou aos projetos sem ninguém ver.
+      - name: Auditoria das dependências (pnpm)
+        run: pnpm audit
       - run: uv sync --locked
       - name: Hooks do padrão
         run: uvx pre-commit@4.7.0 run --all-files --show-diff-on-failure
