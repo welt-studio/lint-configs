@@ -133,6 +133,12 @@ runtime-evaluated-decorators = [
     "fastapi.APIRouter.delete",
 ]
 
+[lint.isort]
+# O pacote `alembic` é sempre de terceiros, mas a pasta `alembic/` das migrations, ao lado do código,
+# faz o Ruff tomá-lo como do projeto conforme a pasta em que roda: da raiz do repo ou de dentro do
+# pacote, o mesmo import ia para grupos diferentes e o `--fix` reordenava de um jeito e de outro.
+known-third-party = ["alembic"]
+
 [lint.flake8-bugbear]
 # É assim que o FastAPI declara dependência e parâmetro de rota (`db: Session = Depends(get_db)`): a
 # chamada no default é lida pelo FastAPI a cada requisição, não compartilhada entre chamadas. Fora
