@@ -55,6 +55,13 @@ repos:
         language: script
         pass_filenames: false
         always_run: true
+      # Dependências Python do pacote da raiz (os scripts de `hooks/` e as ferramentas do grupo dev).
+      - id: deptry
+        name: deptry (dependências Python, padrão da Welt Studio)
+        entry: uv run deptry .
+        language: system
+        pass_filenames: false
+        files: (\.py|pyproject\.toml|uv\.lock)$
 
   # Python - Ruff e Pyright do venv da raiz (versões do `uv.lock`, a mesma que a CI roda).
   - repo: local

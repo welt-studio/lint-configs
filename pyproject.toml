@@ -1,6 +1,6 @@
 # Ambiente de desenvolvimento dos scripts dos hooks (`sync_base.py`, `check_*.py`): não é pacote
 # publicado. Os hooks rodam nos projetos só com a stdlib; aqui ficam as ferramentas que conferem o
-# próprio código pelo padrão (Ruff, Pyright, pytest).
+# próprio código pelo padrão (Ruff, Pyright, deptry, pytest).
 [project]
 name = "standards"
 version = "0"
@@ -10,6 +10,8 @@ requires-python = "==3.14.*"
 dev = [
     "ruff==0.17.1",
     "pyright==1.1.414",
+    # Dependência não usada ou não declarada (hook `deptry`)
+    "deptry==0.25.1",
     # Padrão de testes da Welt Studio (hook `pytest-base`): ordem aleatória, timeout, rede bloqueada
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
@@ -27,6 +29,12 @@ required-version = "==0.13.1"
 # Versão nova só entra com 7 dias de publicada (política de versões; correção de segurança mais nova
 # entra em `exclude-newer-package`).
 exclude-newer = "7 days"
+
+[tool.deptry]
+# O deptry roda da raiz (`deptry .`) e só reconhece como código próprio o que está nela; os scripts
+# dos hooks moram em `hooks/` e se importam pelo nome (o mesmo fato do `src` do `ruff.toml` e do
+# `pythonpath` abaixo). Os que outro script importa entram aqui; esquecido, o deptry acusa DEP001.
+known_first_party = ["parsed", "pyproject"]
 
 [tool.pytest.ini_options]
 strict = true

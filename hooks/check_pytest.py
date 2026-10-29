@@ -11,13 +11,14 @@ Uso: `check_pytest.py [pasta]`, com a pasta do pacote Python (relativa à raiz) 
 `pyproject.toml` não está na raiz.
 """
 
-import re
 import shlex
 import sys
-import tomllib
 from pathlib import Path
 
 from parsed import Table, items, table
+from pyproject import dev_dependencies, load
+
+HOOK = "pytest-base"
 
 # Teste que passa disso trava a suíte: falha em vez de esperar para sempre. Teste lento de propósito
 # declara o dele com `@pytest.mark.timeout(...)`.
@@ -36,12 +37,6 @@ REQUIRED_PLUGINS = (
     "pytest-socket",
     "time-machine",
 )
-
-
-def requirement_name(requirement: str) -> str:
-    """Nome normalizado (PEP 503) de um requisito como `pytest-cov==7.1.0`."""
-    match = re.match(r"[A-Za-z0-9._-]+", requirement.strip())
-    return re.sub(r"[-_.]+", "-", match.group(0)).lower() if match else ""
 
 
 def addopts_tokens(value: object) -> list[str]:
@@ -92,8 +87,7 @@ def coverage_problems(coverage: Table) -> list[str]:
 
 
 def plugin_problems(config: Table) -> list[str]:
-    dev = items(table(config.get("dependency-groups")).get("dev"))
-    present = {requirement_name(item) for item in dev if isinstance(item, str)}
+    present = dev_dependencies(config)
     missing = [plugin for plugin in REQUIRED_PLUGINS if plugin not in present]
     if not missing:
         return []
@@ -114,18 +108,13 @@ def main(args: list[str]) -> int:
         sys.stderr.write("uso: check_pytest.py [pasta]\n")
         return 2
     path = Path(*args, "pyproject.toml")
-    if not path.is_file():
-        sys.stderr.write(f"pytest-base: {path} não existe\n")
-        return 1
-    try:
-        config = tomllib.loads(path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as error:
-        sys.stderr.write(f"pytest-base: {path} não é TOML válido: {error}\n")
+    config = load(path, HOOK)
+    if config is None:
         return 1
     found = problems(config)
     if not found:
         return 0
-    sys.stderr.write(f"pytest-base: {path} fora do padrão de testes da Welt Studio:\n")
+    sys.stderr.write(f"{HOOK}: {path} fora do padrão de testes da Welt Studio:\n")
     sys.stderr.writelines(f"  - falta {item}\n" for item in found)
     return 1
 

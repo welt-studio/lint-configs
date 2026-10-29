@@ -43,6 +43,19 @@
   pass_filenames: false
   always_run: true
 
+# Dependência Python não usada, não declarada ou fora do grupo certo (o Knip do Python): roda o
+# deptry do `uv.lock` do projeto na pasta do pacote passada em `args` (obrigatória; ex.:
+# `args: [backend]`, ou `args: [.]`). Sem script: o `uv` direto, no ambiente do projeto (o deptry
+# lê os metadados dos pacotes instalados para saber de que distribuição vem cada import). O
+# `bash -c` só põe a pasta (`$1`) no `--directory`; o `deptry` depois do script é o `$0`. Sem o
+# `deptry` no grupo `dev`, o uv reprova com `Failed to spawn: deptry`.
+- id: deptry
+  name: deptry (dependências Python, padrão da Welt Studio)
+  entry: bash -c 'exec uv run --directory "${1:?passe a pasta do pacote Python em args}" deptry .' deptry
+  language: system
+  pass_filenames: false
+  files: (\.py|pyproject\.toml|uv\.lock)$
+
 # Confere a política de scripts de instalação do pnpm (`strictDepBuilds: false`, sem `allowBuilds`,
 # npm recusado pelo `devEngines`): na raiz, ou na pasta do `pnpm-workspace.yaml` passada em `args`.
 - id: pnpm-base

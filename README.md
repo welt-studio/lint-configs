@@ -1,15 +1,15 @@
 # Standards
 
-Os padrões de desenvolvimento da Welt Studio (lint, tipos, formatação, duplicação, testes, scripts
-de instalação do pnpm e a política de versões do Renovate), declarados uma vez para todos os
-projetos.
+Os padrões de desenvolvimento da Welt Studio (lint, tipos, formatação, duplicação, testes,
+dependências Python, scripts de instalação do pnpm e a política de versões do Renovate), declarados
+uma vez para todos os projetos.
 
 ## Desenvolver este repo
 
 O standards segue o padrão que publica, com os mesmos hooks dos projetos
-(`.pre-commit-config.yaml`); os hooks `*-base` rodam os scripts deste working tree, e as cópias que
-eles geram na raiz (`ruff-base.toml`, `pyright-base.json`, `.prettierignore`, `.jscpd*.json`) não se
-editam.
+(`.pre-commit-config.yaml`); os hooks `*-base` rodam os scripts deste working tree, e
+as cópias que eles geram na raiz (`ruff-base.toml`, `pyright-base.json`, `.prettierignore`,
+`.jscpd*.json`) não se editam.
 
 | Parte                                       | Onde                                                                                                                                    |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -557,7 +557,7 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/standards
-  rev: pytest-v1.0.0
+  rev: pytest-v1.1.0
   hooks:
     - id: pytest-base
       args: [backend] # a pasta do pacote Python, quando o pyproject.toml não está na raiz
@@ -588,6 +588,52 @@ testes passando. O piso vale para a suíte inteira (CI e `pre-push`). O mesmo no
 
 O hook reprova também `pyproject.toml` que não é TOML válido, com o erro do
 parser. Os testes do hook ficam em `tests/test_check_pytest.py` (ver "Desenvolver este repo").
+
+## Dependências Python (deptry): hook `deptry`
+
+O [deptry](https://deptry.com/) compara os imports do código com as dependências do
+`pyproject.toml` do pacote, como o Knip faz no JS com o `package.json`. O hook `deptry` roda
+`uv run --directory <pacote> deptry .` e reprova com o que ele acusa:
+
+| Regra    | O que reprova                                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `DEP001` | import de pacote que não está declarado (funciona só porque veio como dependência de outro, ou porque sobrou no venv) |
+| `DEP002` | dependência declarada que nenhum código importa                                                                       |
+| `DEP003` | import direto de dependência transitiva: declarada por outro pacote, não pelo projeto                                 |
+| `DEP004` | dependência do grupo `dev` importada no código da aplicação (no deploy, sem o `dev`, o import quebra)                 |
+
+O projeto adota com o deptry no grupo `dev` (`uv add --dev deptry`; a versão é a do `uv.lock`, que
+o Renovate sobe) e o hook:
+
+```yaml
+# .pre-commit-config.yaml
+- repo: https://github.com/welt-studio/standards
+  rev: deptry-v1.0.0
+  hooks:
+    - id: deptry
+      args: [backend] # a pasta do pacote Python (obrigatória; `.` quando o pyproject.toml é o da raiz)
+```
+
+O hook não tem script: ele chama o `uv` direto (`language: system`). Sem o `deptry` no grupo `dev`,
+o uv reprova com `Failed to spawn: deptry`. O deptry roda no ambiente do projeto (`uv run`), e não
+num ambiente isolado do pre-commit, porque é pelos metadados dos pacotes instalados que ele sabe de
+que distribuição vem cada import (`yaml` → `pyyaml`). Ele
+roda quando o commit toca `.py`, `pyproject.toml` ou `uv.lock`, sobre o pacote inteiro
+(`pass_filenames: false`): a dependência que sobra é a que o commit deixou de importar.
+
+Exceção vai no `[tool.deptry.per_rule_ignores]` do `pyproject.toml` do pacote, só para fato do
+projeto, com o motivo num comentário: pacote que nenhum código importa porque é usado por CLI, entry
+point, driver ou plugin carregado por string (o `psycopg` que o Django carrega pelo `ENGINE`, o
+`uvicorn` do comando de subida). O deptry reconhece como código próprio só o que está na raiz do
+pacote; módulo em outra pasta (layout `src/`, ou scripts importados pelo nome, como os de `hooks/`
+deste repo) vai no `known_first_party` do `[tool.deptry]`, o mesmo fato do `known-first-party` do
+Ruff.
+
+```toml
+[tool.deptry.per_rule_ignores]
+# O Django carrega o driver do banco pelo `ENGINE` do settings, por string.
+DEP002 = ["psycopg"]
+```
 
 ## Testes (vitest): `@welt-studio/vitest-config`
 

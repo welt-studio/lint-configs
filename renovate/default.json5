@@ -105,6 +105,12 @@
       versioning: "regex:^pnpm-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
     },
     {
+      description: "E o hook `deptry` só as `deptry-v*`.",
+      matchPackageNames: ["welt-studio/standards"],
+      matchCurrentValue: "/^deptry-v/",
+      versioning: "regex:^deptry-v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
+    },
+    {
       // Exceção: a v2.0.0 (2024) roda em Node 20, que o GitHub está tirando dos runners, e a migração
       // para Node 24 (rustsec/audit-check#48) ainda não tem tag. Fica no commit do `main` até sair
       // uma release; aí esta regra sai.
