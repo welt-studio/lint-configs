@@ -52,4 +52,20 @@
   inteiro. O teste do pacote roda com o processo na pasta do fixture por isso.
 - **Sugestão**: correção upstream no `eslint-import-resolver-typescript`; a issue com o caso
   mínimo só se abre com o OK do PO. Corrigido, subir a versão no `eslint/package.json` e conferir
-  o teste com o processo fora da pasta do fixture.
+  o teste com o processo fora da pasta do fixture. Causa achada em `2026-10-30`, no
+  `createTypeScriptImportResolver` (`src/index.ts` do `master`, L210–221): na troca de `cwd`, o
+  `if (options.project)` cria um `ResolverFactory` sem `tsconfig` — o contrário da criação, que deixa
+  o resolver indefinido quando há `project` —, e o `resolve()` pula a escolha do `tsconfig` por
+  arquivo.
+
+### [pre-commit] Hooks com os nomes antigos de linguagem (`system`, `script`)
+
+- [ ] **Severidade**: Baixa · `2026-10-30`
+- **Arquivos**: `.pre-commit-hooks.yaml`, `.pre-commit-config.yaml` (e o de cada projeto)
+- **Descrição**: o pre-commit 4.4.0 criou `language: unsupported` e `unsupported_script` como
+  nomes novos de `system` e `script`, e diz que os antigos "vão ser descontinuados". No 4.7.0 eles
+  funcionam sem aviso. Trocar agora mexe nos hooks do standards e dos 6 projetos sem ganho
+  (decisão do PO, `2026-10-30`: esperar).
+- **Sugestão**: quando o pre-commit passar a avisar (ou o Renovate subir uma versão que avise),
+  trocar os nomes no standards numa tag nova de cada hook e nos `.pre-commit-config.yaml` dos
+  projetos, na mesma rodada.
