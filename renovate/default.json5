@@ -14,7 +14,7 @@
   ],
 
   // Uma rodada por mês, na madrugada do dia 1. Correção de vulnerabilidade não espera o calendário:
-  // o `vulnerabilityAlerts` (padrão do Renovate) abre o PR na hora, sem a idade mínima abaixo.
+  // o `vulnerabilityAlerts` (abaixo) abre o PR na hora, sem a idade mínima.
   timezone: "America/Sao_Paulo",
   schedule: ["* 0-6 1 * *"],
   lockFileMaintenance: {
@@ -32,6 +32,13 @@
   vulnerabilityAlerts: {
     groupName: "security fixes",
   },
+  // A fonte das falhas é a base pública do osv.dev, que o Renovate baixa (release do
+  // `renovatebot/osv-offline`, no GitHub) e consulta localmente, além dos alertas do GitHub. Os
+  // alertas do GitHub vêm do grafo de dependências, que não lê o lockfile do pnpm 12 (o primeiro
+  // documento do arquivo só declara o próprio pnpm): sem isto, falha em pacote JavaScript não viraria
+  // PR na hora. Limite: o OSV do Renovate confere só dependência direta; a indireta fica com a
+  // auditoria semanal (`pnpm audit`/`pip-audit`) de cada projeto. Opção experimental do Renovate.
+  osvVulnerabilityAlerts: true,
 
   // Merge automático desligado (decisão do PO, 2026-10-23): a CI dos projetos ainda não monta as
   // imagens Docker em PR, alguns arquivos (Dockerfile de produção, docker-compose) não disparam
