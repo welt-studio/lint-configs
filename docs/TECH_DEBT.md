@@ -50,9 +50,11 @@
   regras de arquitetura (`boundaries/dependencies`) e o `import-x/no-cycle` ficam caladas no
   editor. Na linha de comando, no pre-commit e na CI (que rodam na raiz do projeto) o padrão vale
   inteiro. O teste do pacote roda com o processo na pasta do fixture por isso.
-- **Sugestão**: correção upstream no `eslint-import-resolver-typescript`; a issue com o caso
-  mínimo só se abre com o OK do PO. Corrigido, subir a versão no `eslint/package.json` e conferir
-  o teste com o processo fora da pasta do fixture. Causa achada em `2026-10-30`, no
+- **Sugestão**: correção upstream no `eslint-import-resolver-typescript`. A issue não foi aberta
+  (decisão do PO, `2026-10-30`: só o editor é afetado; commit, CI e o Claude Code rodam da raiz e
+  não são); fica o registro aqui. Quando o Renovate subir o pacote, conferir se a correção entrou e,
+  se sim, rodar o teste com o processo fora da pasta do fixture. Reproduzido e corrigido numa cópia
+  do 4.4.5 em `2026-10-30`. Causa, no
   `createTypeScriptImportResolver` (`src/index.ts` do `master`, L210–221): na troca de `cwd`, o
   `if (options.project)` cria um `ResolverFactory` sem `tsconfig` — o contrário da criação, que deixa
   o resolver indefinido quando há `project` —, e o `resolve()` pula a escolha do `tsconfig` por
