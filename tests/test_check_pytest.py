@@ -27,6 +27,7 @@ COMPLETE = {
                     "error",
                     "default",
                     "error::pytest.PytestWarning",
+                    "error::ResourceWarning",
                     r"error:::(.+\.)?(test_\w*|conftest)$",
                     r"error:::app(\.|$)",
                 ],
@@ -44,6 +45,9 @@ COMPLETE = {
 
 
 COMPLETE_WARNINGS: list[str] = COMPLETE["tool"]["pytest"]["ini_options"]["filterwarnings"]
+# O que vem depois do `"error"`, e o mesmo sem a linha do pacote (a última).
+BOUNDARY = COMPLETE_WARNINGS[1:]
+WITHOUT_PACKAGE = COMPLETE_WARNINGS[:-1]
 
 
 def without(path: tuple[str, ...]) -> dict:
@@ -124,7 +128,7 @@ def test_boundary_has_one_filter_per_source(sources: list[str], packages: list[s
     config = copy.deepcopy(COMPLETE)
     config["tool"]["coverage"]["run"]["source"] = sources
     config["tool"]["pytest"]["ini_options"]["filterwarnings"] = [
-        *COMPLETE_WARNINGS[:4],
+        *WITHOUT_PACKAGE,
         *(rf"error:::{package}(\.|$)" for package in packages),
     ]
     assert check_pytest.problems(config) == []
@@ -136,17 +140,15 @@ def test_boundary_has_one_filter_per_source(sources: list[str], packages: list[s
         ["ignore"],
         ["ignore::DeprecationWarning:thirdparty"],
         ["default"],
-        # Fronteira incompleta: sem o aviso do pytest, sem os testes, sem o pacote.
-        COMPLETE_WARNINGS[1:2] + COMPLETE_WARNINGS[3:],
-        COMPLETE_WARNINGS[1:3] + COMPLETE_WARNINGS[4:],
-        COMPLETE_WARNINGS[1:4],
+        # Fronteira incompleta: cada linha que vem depois do `default` faltando.
+        *([entry for entry in BOUNDARY if entry != missing] for missing in BOUNDARY[1:]),
         # Pacote que não é o do `source`, ou sem o fim (pegaria a lib `apprise`).
-        [*COMPLETE_WARNINGS[1:4], r"error:::zzz(\.|$)"],
-        [*COMPLETE_WARNINGS[1:4], "error:::app"],
+        [*WITHOUT_PACKAGE[1:], r"error:::zzz(\.|$)"],
+        [*WITHOUT_PACKAGE[1:], "error:::app"],
         # Exceção a mais, ou o `default` fora do lugar.
-        [*COMPLETE_WARNINGS[1:], "ignore:some message"],
-        [*COMPLETE_WARNINGS[2:], "default"],
-        ["always", *COMPLETE_WARNINGS[2:]],
+        [*BOUNDARY, "ignore:some message"],
+        [*BOUNDARY[1:], "default"],
+        ["always", *BOUNDARY[1:]],
     ],
 )
 def test_warnings_exceptions_fail(boundary: list[str]) -> None:

@@ -40,6 +40,9 @@ WARNINGS_THIRD_PARTY = "default"
 # Aviso do próprio pytest sobre os nossos testes (classe não coletada, exceção perdida numa thread,
 # teste que devolve valor): sai sem módulo nosso, então só a categoria o pega.
 WARNINGS_PYTEST = "error::pytest.PytestWarning"
+# Recurso não fechado (conexão, arquivo): o aviso sai quando o coletor destrói o objeto e fica com o
+# módulo que rodava naquela hora, não com quem abriu; por módulo, ia para o relatório.
+WARNINGS_RESOURCE = "error::ResourceWarning"
 # Módulo de teste em qualquer modo de import (`test_x`, `tests.test_x`) e o `conftest`.
 WARNINGS_TESTS = rf"error:::(.+\.)?({TEST_FILE_PREFIX}\w*|conftest)$"
 BOUNDARY_PROBLEM = "[tool.pytest.ini_options] filterwarnings sem exceção"
@@ -78,6 +81,7 @@ def warnings_boundary(packages: list[str]) -> list[str]:
     return [
         WARNINGS_THIRD_PARTY,
         WARNINGS_PYTEST,
+        WARNINGS_RESOURCE,
         WARNINGS_TESTS,
         *(package_filter(package) for package in packages),
     ]

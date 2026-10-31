@@ -557,7 +557,7 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/standards
-  rev: pytest-v2.0.0
+  rev: pytest-v3.0.0
   hooks:
     - id: pytest-base
       args: [backend] # a pasta do pacote Python, quando o pyproject.toml não está na raiz
@@ -585,6 +585,7 @@ filterwarnings = [
     'error',                               # exigido como primeira linha
     'default',                             # aviso emitido dentro de lib: relatório, não reprova
     'error::pytest.PytestWarning',         # aviso do pytest sobre os nossos testes
+    'error::ResourceWarning',              # conexão ou arquivo que não foi fechado
     'error:::(.+\.)?(test_\w*|conftest)$', # módulos de teste e conftest, em qualquer modo de import
     'error:::nebulai(\.|$)',               # um por pacote do [tool.coverage.run] source
 ]
@@ -597,6 +598,9 @@ a correção é nossa. Só o que nasce dentro da lib vira relatório.
 - `pytest.PytestWarning`: classe de teste que não é coletada, exceção perdida numa thread ou no
   `__del__`, teste que devolve valor. O pytest emite esses avisos sem módulo nosso, então só a
   categoria os pega.
+- `ResourceWarning`: o aviso de conexão ou arquivo não fechado sai quando o coletor destrói o
+  objeto, e fica com o módulo que rodava naquela hora (até o `inspect` da stdlib), não com quem
+  abriu. Por módulo, um vazamento nosso iria para o relatório.
 - Testes: o nome do módulo muda com o modo de import (`test_x` no `prepend` sem `__init__.py`,
   `tests.test_x` no `importlib`); a regex casa pelo nome do arquivo, que o `python_files` fixa.
 - Pacotes: o módulo é regex ancorada só no início, então o `(\.|$)` é obrigatório — sem ele,
