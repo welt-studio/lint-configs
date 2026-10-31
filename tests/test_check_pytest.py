@@ -23,7 +23,13 @@ COMPLETE = {
         "pytest": {
             "ini_options": {
                 "strict": True,
-                "filterwarnings": ["error", "ignore::DeprecationWarning:thirdparty"],
+                "filterwarnings": [
+                    "error",
+                    "default",
+                    "error::pytest.PytestWarning",
+                    r"error:::(.+\.)?(test_\w*|conftest)$",
+                    r"error:::app(\.|$)",
+                ],
                 "python_files": ["test_*.py"],
                 "addopts": "-n 4 --cov --disable-socket --allow-hosts=127.0.0.1,localhost",
                 "timeout": check_pytest.TIMEOUT_SECONDS,
@@ -35,6 +41,9 @@ COMPLETE = {
         },
     },
 }
+
+
+COMPLETE_WARNINGS: list[str] = COMPLETE["tool"]["pytest"]["ini_options"]["filterwarnings"]
 
 
 def without(path: tuple[str, ...]) -> dict:
@@ -92,6 +101,89 @@ def test_warnings_not_starting_with_error_fail() -> None:
     assert check_pytest.problems(config) == [
         '[tool.pytest.ini_options] filterwarnings começando por "error"'
     ]
+
+
+def test_error_alone_passes() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["filterwarnings"] = ["error"]
+    assert check_pytest.problems(config) == []
+
+
+def test_boundary_order_after_default_is_free() -> None:
+    config = copy.deepcopy(COMPLETE)
+    options = config["tool"]["pytest"]["ini_options"]
+    options["filterwarnings"] = options["filterwarnings"][:2] + options["filterwarnings"][:1:-1]
+    assert check_pytest.problems(config) == []
+
+
+@pytest.mark.parametrize(
+    ("sources", "packages"),
+    [(["app/core", "tools"], [r"app\.core", "tools"]), (["app.core"], [r"app\.core"])],
+)
+def test_boundary_has_one_filter_per_source(sources: list[str], packages: list[str]) -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["coverage"]["run"]["source"] = sources
+    config["tool"]["pytest"]["ini_options"]["filterwarnings"] = [
+        *COMPLETE_WARNINGS[:4],
+        *(rf"error:::{package}(\.|$)" for package in packages),
+    ]
+    assert check_pytest.problems(config) == []
+
+
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        ["ignore"],
+        ["ignore::DeprecationWarning:thirdparty"],
+        ["default"],
+        # Fronteira incompleta: sem o aviso do pytest, sem os testes, sem o pacote.
+        COMPLETE_WARNINGS[1:2] + COMPLETE_WARNINGS[3:],
+        COMPLETE_WARNINGS[1:3] + COMPLETE_WARNINGS[4:],
+        COMPLETE_WARNINGS[1:4],
+        # Pacote que não é o do `source`, ou sem o fim (pegaria a lib `apprise`).
+        [*COMPLETE_WARNINGS[1:4], r"error:::zzz(\.|$)"],
+        [*COMPLETE_WARNINGS[1:4], "error:::app"],
+        # Exceção a mais, ou o `default` fora do lugar.
+        [*COMPLETE_WARNINGS[1:], "ignore:some message"],
+        [*COMPLETE_WARNINGS[2:], "default"],
+        ["always", *COMPLETE_WARNINGS[2:]],
+    ],
+)
+def test_warnings_exceptions_fail(boundary: list[str]) -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["filterwarnings"] = ["error", *boundary]
+    found = check_pytest.problems(config)
+    assert len(found) == 1
+    assert found[0].startswith(check_pytest.BOUNDARY_PROBLEM)
+
+
+def test_boundary_needs_import_names_in_source() -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["coverage"]["run"]["source"] = ["."]
+    found = check_pytest.problems(config)
+    assert len(found) == 1
+    assert found[0].startswith(check_pytest.PACKAGES_PROBLEM)
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["-W", "ignore::DeprecationWarning"],
+        ["-Wignore"],
+        ["--pythonwarnings=ignore"],
+        ["-p", "no:warnings"],
+        ["-pno:warnings"],
+    ],
+)
+def test_command_line_warning_filters_fail(flags: list[str]) -> None:
+    config = copy.deepcopy(COMPLETE)
+    config["tool"]["pytest"]["ini_options"]["addopts"] = [
+        "--cov",
+        "--disable-socket",
+        "--allow-hosts=::1",
+        *flags,
+    ]
+    assert check_pytest.problems(config) == [check_pytest.WARNINGS_FLAGS_PROBLEM]
 
 
 def test_network_flags_are_required() -> None:

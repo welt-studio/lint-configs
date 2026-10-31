@@ -557,7 +557,7 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 ```yaml
 # .pre-commit-config.yaml
 - repo: https://github.com/welt-studio/standards
-  rev: pytest-v1.1.0
+  rev: pytest-v2.0.0
   hooks:
     - id: pytest-base
       args: [backend] # a pasta do pacote Python, quando o pyproject.toml não está na raiz
@@ -566,7 +566,7 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 | Exigido                                                                                                                          | Por quê                                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `strict = true`                                                                                                                  | pytest 9: marker não declarado, opção de config desconhecida e `xfail` que passa viram erro                            |
-| `filterwarnings` começando por `"error"`                                                                                         | aviso (depreciação, inclusive) reprova na hora                                                                         |
+| `filterwarnings` começando por `"error"`, e depois dele só a fronteira (abaixo); `addopts` sem `-W` nem `-p no:warnings`         | aviso do nosso código (depreciação, inclusive) reprova na hora; aviso que nasce dentro de lib não                      |
 | `python_files = ["test_*.py"]`                                                                                                   | uma forma só de nome de arquivo de teste                                                                               |
 | `addopts` com `--disable-socket` e `--allow-hosts=<hosts>`                                                                       | teste não acessa a rede; os hosts liberados (banco local) são fato do projeto                                          |
 | `addopts` com `--cov` (ou `--cov=<pasta>`)                                                                                       | o `fail_under` só vale quando a cobertura roda: sem a flag no `addopts`, um `pytest` sem ela passa abaixo do piso      |
@@ -574,6 +574,41 @@ cópia: o projeto é dono do `[tool.pytest.ini_options]` e do `[tool.coverage]`,
 | `[tool.coverage.run]` `branch = true`, `source`, sem `omit`                                                                      | a cobertura conta os dois lados de cada `if`, sobre todo o código da aplicação                                         |
 | `[tool.coverage.report]` `fail_under = 80`                                                                                       | piso igual para todos (o do front é o mesmo)                                                                           |
 | `[dependency-groups] dev` com `pytest-cov`, `pytest-xdist`, `pytest-randomly`, `pytest-timeout`, `pytest-socket`, `time-machine` | cobertura, paralelismo, ordem aleatória (pega teste que depende de outro), timeout, rede bloqueada, relógio controlado |
+
+O filtro de avisos do Python vale para o processo inteiro: com só `"error"`, um aviso que nasce
+dentro do diffusers ou do transformers reprova teste nosso, e a saída viraria corrigir lib de
+terceiro. A régua é para o nosso código, então o projeto que depende de lib que avisa declara a
+fronteira, inteira (com aspas simples: são regex, e o TOML não mexe na `\`):
+
+```toml
+filterwarnings = [
+    'error',                               # exigido como primeira linha
+    'default',                             # aviso emitido dentro de lib: relatório, não reprova
+    'error::pytest.PytestWarning',         # aviso do pytest sobre os nossos testes
+    'error:::(.+\.)?(test_\w*|conftest)$', # módulos de teste e conftest, em qualquer modo de import
+    'error:::nebulai(\.|$)',               # um por pacote do [tool.coverage.run] source
+]
+```
+
+O pytest aplica a última regra que casar. O aviso é atribuído ao módulo que o `stacklevel` aponta:
+quando o nosso código chama uma API depreciada da lib, o aviso cai na nossa linha e reprova, porque
+a correção é nossa. Só o que nasce dentro da lib vira relatório.
+
+- `pytest.PytestWarning`: classe de teste que não é coletada, exceção perdida numa thread ou no
+  `__del__`, teste que devolve valor. O pytest emite esses avisos sem módulo nosso, então só a
+  categoria os pega.
+- Testes: o nome do módulo muda com o modo de import (`test_x` no `prepend` sem `__init__.py`,
+  `tests.test_x` no `importlib`); a regex casa pelo nome do arquivo, que o `python_files` fixa.
+- Pacotes: o módulo é regex ancorada só no início, então o `(\.|$)` é obrigatório — sem ele,
+  `error:::app` pegaria a lib `apprise`. Os pacotes saem do `[tool.coverage.run] source`, que com a
+  fronteira lista nomes de import (`app`, `app/core` vira `app\.core`; `.` não serve).
+
+Depois do `"error"`, o hook aceita só isso: nada, ou essa fronteira, completa e com os pacotes do
+`source` (a ordem depois do `default` é livre). Na falta, ele imprime a lista certa para colar.
+Exceção por lib ou por mensagem (`ignore::DeprecationWarning:diffusers`, `ignore`) reprova, e
+também `-W`/`--pythonwarnings` e `-p no:warnings` no `addopts`, que valem por cima do ini: com a
+fronteira nenhuma exceção é necessária. Fica fora do alcance do hook, que só lê o `pyproject.toml`,
+o `@pytest.mark.filterwarnings("ignore…")` num teste.
 
 Fica com o projeto o que é fato dele: `testpaths`, `pythonpath`, markers, `asyncio_mode`,
 `DJANGO_SETTINGS_MODULE`, o número de workers do xdist. Com o `--cov` no `addopts`, a CI e o

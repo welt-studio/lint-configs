@@ -4,15 +4,17 @@
 O pytest não tem `extends` e não mescla configs (vale o primeiro arquivo achado), então o padrão não
 chega como cópia, como no Ruff e no Pyright: o projeto é dono do `[tool.pytest.ini_options]` e do
 `[tool.coverage]`, e este hook reprova, com o motivo, quando falta o que o padrão exige. O que é
-fato do projeto (`testpaths`, markers, `asyncio_mode`, os hosts liberados) fica com ele. Python
-stdlib, sem dependências.
+fato do projeto (`testpaths`, markers, `asyncio_mode`, os hosts liberados, os módulos nossos do
+`filterwarnings`) fica com ele. Python stdlib, sem dependências.
 
 Uso: `check_pytest.py [pasta]`, com a pasta do pacote Python (relativa à raiz) quando o
 `pyproject.toml` não está na raiz.
 """
 
+import re
 import shlex
 import sys
+from itertools import pairwise
 from pathlib import Path
 
 from parsed import Table, items, table
@@ -26,7 +28,23 @@ TIMEOUT_SECONDS = 60
 # Piso de cobertura, igual para todos (decisão do PO, 2026-10-25). O do front é o mesmo número, no
 # `@welt-studio/vitest-config`.
 COVERAGE_FLOOR = 80
-PYTHON_FILES = ["test_*.py"]
+TEST_FILE_PREFIX = "test_"
+PYTHON_FILES = [f"{TEST_FILE_PREFIX}*.py"]
+# O filtro de avisos vale para o processo inteiro: com só `"error"`, aviso que nasce dentro de uma
+# lib reprova teste nosso. Depois do `"error"`, a única forma aceita é a fronteira, inteira:
+# `"default"` (aviso de lib aparece no relatório) e os `"error"` do que é nosso (o pytest aplica a
+# última regra que casar). Exceção por lib ou por mensagem não entra: com a fronteira ela nunca é
+# necessária.
+WARNINGS_FIRST = "error"
+WARNINGS_THIRD_PARTY = "default"
+# Aviso do próprio pytest sobre os nossos testes (classe não coletada, exceção perdida numa thread,
+# teste que devolve valor): sai sem módulo nosso, então só a categoria o pega.
+WARNINGS_PYTEST = "error::pytest.PytestWarning"
+# Módulo de teste em qualquer modo de import (`test_x`, `tests.test_x`) e o `conftest`.
+WARNINGS_TESTS = rf"error:::(.+\.)?({TEST_FILE_PREFIX}\w*|conftest)$"
+BOUNDARY_PROBLEM = "[tool.pytest.ini_options] filterwarnings sem exceção"
+PACKAGES_PROBLEM = "[tool.coverage.run] source com os pacotes pelo nome de import"
+WARNINGS_FLAGS_PROBLEM = "[tool.pytest.ini_options] addopts sem -W nem -p no:warnings"
 # No grupo `dev` (`[dependency-groups]`): cobertura, paralelismo, ordem aleatória (pega teste que
 # depende de outro), timeout, rede bloqueada e relógio controlado.
 REQUIRED_PLUGINS = (
@@ -45,18 +63,72 @@ def addopts_tokens(value: object) -> list[str]:
     return [str(item) for item in items(value)]
 
 
-def pytest_problems(options: Table) -> list[str]:
+def package_name(source: object) -> str | None:
+    """O nome de import de uma entrada do `source` (`app`, `app/core` → `app.core`)."""
+    name = str(source).replace("/", ".").strip(".")
+    return name if name and all(part.isidentifier() for part in name.split(".")) else None
+
+
+def package_filter(package: str) -> str:
+    # O módulo do filtro é regex ancorada só no início: sem o fim, `app` pegaria a lib `apprise`.
+    return rf"{WARNINGS_FIRST}:::{re.escape(package)}(\.|$)"
+
+
+def warnings_boundary(packages: list[str]) -> list[str]:
+    return [
+        WARNINGS_THIRD_PARTY,
+        WARNINGS_PYTEST,
+        WARNINGS_TESTS,
+        *(package_filter(package) for package in packages),
+    ]
+
+
+def warnings_problems(options: Table, sources: list[object]) -> list[str]:
+    warnings = [str(entry).strip() for entry in items(options.get("filterwarnings"))]
+    if not warnings or warnings[0] != WARNINGS_FIRST:
+        return [f'[tool.pytest.ini_options] filterwarnings começando por "{WARNINGS_FIRST}"']
+    boundary = warnings[1:]
+    # Sem fronteira, nada a conferir; sem `source`, o `coverage_problems` já reprova, e a fronteira
+    # depende dele.
+    if not boundary or not sources:
+        return []
+    packages = [package_name(source) for source in sources]
+    valid = [package for package in packages if package is not None]
+    if len(valid) != len(packages):
+        return [f"{PACKAGES_PROBLEM} (a fronteira do filterwarnings sai deles)"]
+    expected = warnings_boundary(valid)
+    if boundary[0] == WARNINGS_THIRD_PARTY and sorted(boundary) == sorted(expected):
+        return []
+    rendered = ", ".join(f"'{entry}'" for entry in [WARNINGS_FIRST, *expected])
+    return [
+        (
+            f"{BOUNDARY_PROBLEM}: depois do '{WARNINGS_FIRST}', nada, ou a fronteira inteira "
+            f"[{rendered}] (aviso de lib não reprova)"
+        )
+    ]
+
+
+def disables_warnings(tokens: list[str]) -> bool:
+    """`-W`/`--pythonwarnings` ou `-p no:warnings`: filtro de linha de comando vence o do ini."""
+    return any(
+        flag.startswith(("-W", "--pythonwarnings", "-pno:warnings"))
+        or (flag == "-p" and following == "no:warnings")
+        for flag, following in pairwise([*tokens, ""])
+    )
+
+
+def pytest_problems(options: Table, sources: list[object]) -> list[str]:
     problems: list[str] = []
     if options.get("strict") is not True:
         problems.append(
             "[tool.pytest.ini_options] strict = true (marker, config e xfail estritos; pytest 9)"
         )
-    warnings = items(options.get("filterwarnings"))
-    if not warnings or warnings[0] != "error":
-        problems.append('[tool.pytest.ini_options] filterwarnings começando por "error"')
+    problems += warnings_problems(options, sources)
     if options.get("python_files") != PYTHON_FILES:
         problems.append(f"[tool.pytest.ini_options] python_files = {PYTHON_FILES}")
     tokens = addopts_tokens(options.get("addopts"))
+    if disables_warnings(tokens):
+        problems.append(WARNINGS_FLAGS_PROBLEM)
     if "--disable-socket" not in tokens:
         problems.append("[tool.pytest.ini_options] addopts com --disable-socket (teste sem rede)")
     if not any(token.startswith("--allow-hosts") for token in tokens):
@@ -96,8 +168,9 @@ def plugin_problems(config: Table) -> list[str]:
 
 def problems(config: Table) -> list[str]:
     tool = table(config.get("tool"))
+    sources = items(table(table(tool.get("coverage")).get("run")).get("source"))
     return (
-        pytest_problems(table(table(tool.get("pytest")).get("ini_options")))
+        pytest_problems(table(table(tool.get("pytest")).get("ini_options")), sources)
         + coverage_problems(table(tool.get("coverage")))
         + plugin_problems(config)
     )
